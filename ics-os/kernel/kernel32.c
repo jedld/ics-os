@@ -465,11 +465,6 @@ void dex_init(){
    ide_init();
    printf("[OK]\n");   
 
-   /*Install the USB driver for USB mass storage devices*/
-   printf("Initializing USB drivers...\n");
-   usb_init();
-   printf("[OK]\n");   
-
    /*Install the VGA driver*/
    printf("Loading VGA driver...");
    vga_init();
@@ -481,6 +476,11 @@ void dex_init(){
    //initialize the floppy device
    myblock = (devmgr_block_desc*)devmgr_devlist[floppy_deviceid];
    myblock->init_device();
+
+   /*Install the USB driver for USB mass storage devices*/
+   printf("Initializing USB drivers...\n");
+   usb_init();
+   printf("[OK]\n");   
 
    //initialize the file tables (Initialize the VFS)
    printf("Initializing the Virtual File System...");

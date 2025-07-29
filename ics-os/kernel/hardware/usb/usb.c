@@ -69,10 +69,14 @@ int usb_init(void) {
     memset(usb_controllers, 0, sizeof(usb_controllers));
     memset(mass_storage_devices, 0, sizeof(mass_storage_devices));
     
+    // Initialize counters
+    num_controllers = 0;
+    num_mass_storage = 0;
+    
     // Scan for USB controllers on PCI bus
     if (usb_scan_controllers() < 0) {
         printf("No USB controllers found\n");
-        return -1;
+        return 0; // Not an error - just no USB hardware
     }
     
     printf("Found %d USB controller(s)\n", num_controllers);
@@ -327,7 +331,10 @@ DWORD __attribute__((weak)) pci_read_config_dword(int bus, int dev, int func, in
 
 // Register USB mass storage device as a block device
 int usb_register_block_device(usb_device_t *device) {
-    if (!device || !device->mass_storage_info) return -1;
+    if (!device || !device->mass_storage_info) {
+        printf("USB: Invalid device for registration\n");
+        return -1;
+    }
     
     devmgr_block_desc myblock;
     memset(&myblock, 0, sizeof(myblock));
@@ -346,11 +353,18 @@ int usb_register_block_device(usb_device_t *device) {
     myblock.total_blocks = usb_uni_get_total_blocks;
     myblock.hdr.sendmessage = usb_sendmessage;
     
-    // Register with device manager
+    // Register with device manager with error checking
+    printf("USB: Registering device %s...\n", myblock.hdr.name);
     int deviceid = devmgr_register((devmgr_generic*)&myblock);
+    
+    if (deviceid < 0) {
+        printf("USB: Failed to register device %s\n", myblock.hdr.name);
+        return -1;
+    }
+    
     device->block_device_id = deviceid;
     
-    printf("Registered USB mass storage as block device: %s (ID: %d)\n", 
+    printf("USB: Registered mass storage as block device: %s (ID: %d)\n", 
            myblock.hdr.name, deviceid);
     
     return deviceid;

@@ -101,3 +101,23 @@ boot-usb-uefi: usb-image
 clean-uefi:
 	rm -f ics-os-uefi.iso ics-os-usb.img
 	./scripts/build-uefi.sh clean
+
+# USB Testing Targets with Virtual USB Devices
+boot-usb-test: usb-thumb.img
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 256M -device piix3-usb-uhci,id=uhci -device usb-storage,bus=uhci.0,drive=usbstick -drive if=none,id=usbstick,file=usb-thumb.img,format=raw
+
+boot-usb-test-modern: usb-thumb.img
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 256M -enable-kvm -device piix3-usb-uhci,id=uhci -device usb-storage,bus=uhci.0,drive=usbstick -drive if=none,id=usbstick,file=usb-thumb.img,format=raw
+
+boot-usb-test-amd64: usb-thumb.img
+	qemu-system-x86_64 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 256M -cpu qemu32 -device piix3-usb-uhci,id=uhci -device usb-storage,bus=uhci.0,drive=usbstick -drive if=none,id=usbstick,file=usb-thumb.img,format=raw
+
+# Create virtual USB thumb drive
+usb-thumb.img:
+	dd if=/dev/zero of=usb-thumb.img bs=1M count=64
+	mkfs.fat -F 32 usb-thumb.img
+	mkdir -p usb-mount
+	sudo mount -o loop usb-thumb.img usb-mount
+	echo "Hello from USB thumb drive!" | sudo tee usb-mount/readme.txt
+	echo "ICS-OS USB Test File" | sudo tee usb-mount/test.txt
+	sudo umount usb-mount
