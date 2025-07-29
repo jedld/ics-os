@@ -1,10 +1,15 @@
 ICS-OS Commands
 ---------------
-653:         if (strcmp(u, "controllers") == 0) {
-655:         } else if (strcmp(u, "devices") == 0) {
+654:         if (strcmp(u, "controllers") == 0) {
+656:         } else if (strcmp(u, "devices") == 0) {
+679:         if (strcmp(u, "clear") == 0) {
+681:         } else if (strcmp(u, "status") == 0) {
+687:         } else if (strcmp(u, "set") == 0) {
 cc- Builds a C program (invokes tcc.exe). Args: <name.exe> <name.c>
 cd- Changes working directory. Args: <directory>
+clipboard- Clipboard operations. Args: [clear|status|set <text>]
 cls- Clears the screen. 
+copy- Copy current command line to clipboard.
 copy- Copy source to destination: Args: <source> <destination>
 cpuid- Displays CPU information. 
 del- Deletes a files or directory. Args: <filename/dirname>
@@ -31,6 +36,7 @@ mount- Mounts a device. Args: fat/cdfs <partition/device> <mount point>
 mouse-  Activate the mouse
 newconsole- Creates a new console.  
 off- Power off the machine.
+paste- Paste from clipboard to command line.
 pause- Waits for a key press
 pcut- Creates a path alias. Args: <alias:> [path]
 procinfo- Show process information. Args: <pid>

@@ -26,6 +26,7 @@
 */
 
 #include "console.h"
+#include "clipboard.h"
 
 // Forward declarations for USB functions
 extern void usb_list_controllers(void);
@@ -664,6 +665,44 @@ int console_execute(const char *str){
          usb_list_controllers();
          printf("\n");
          usb_list_devices();
+      }
+   }else
+   if (strcmp(u,"copy") == 0){         //-- Copy current command line to clipboard.
+      console_copy_selection();
+   }else
+   if (strcmp(u,"paste") == 0){        //-- Paste from clipboard to command line.
+      console_paste_clipboard();
+   }else
+   if (strcmp(u,"clipboard") == 0){    //-- Clipboard operations. Args: [clear|status|set <text>]
+      u = strtok(0, " ");
+      if (u != 0) {
+         if (strcmp(u, "clear") == 0) {
+            clipboard_clear();
+         } else if (strcmp(u, "status") == 0) {
+            if (clipboard_is_empty()) {
+               printf("Clipboard is empty\n");
+            } else {
+               printf("Clipboard contains %d characters\n", clipboard_get_length());
+            }
+         } else if (strcmp(u, "set") == 0) {
+            u = strtok(0, "\n");  // Get rest of line
+            if (u != 0) {
+               clipboard_copy(u, strlen(u));
+            } else {
+               printf("Usage: clipboard set <text>\n");
+            }
+         } else {
+            printf("Usage: clipboard [clear|status|set <text>]\n");
+            printf("  clear  - Clear clipboard contents\n");
+            printf("  status - Show clipboard status\n");
+            printf("  set    - Set clipboard to specified text\n");
+         }
+      } else {
+         if (clipboard_is_empty()) {
+            printf("Clipboard is empty\n");
+         } else {
+            printf("Clipboard contains %d characters\n", clipboard_get_length());
+         }
       }
    }else            
    if (strcmp(u,"exit") == 0){         //-- Exits a console session.
