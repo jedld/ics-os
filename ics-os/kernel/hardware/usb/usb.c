@@ -37,6 +37,12 @@
 #include "../../stdlib/dexstdlib.h"
 #include "../../devmgr/dex32_devmgr.h"
 
+// Simple logging for educational OS - replace complex logging with printf
+#define usb_debug(fmt, ...)    printf("USB DEBUG: " fmt "\n", ##__VA_ARGS__)
+#define usb_info(fmt, ...)     printf("USB INFO: " fmt "\n", ##__VA_ARGS__)  
+#define usb_warn(fmt, ...)     printf("USB WARN: " fmt "\n", ##__VA_ARGS__)
+#define usb_err(fmt, ...)      printf("USB ERROR: " fmt "\n", ##__VA_ARGS__)
+
 // External PCI functions (should be implemented in pcibus driver)
 extern int pci_bios_detect(void);
 extern DWORD pci_read_config_dword(int bus, int dev, int func, int offset);
@@ -74,7 +80,7 @@ void usb_delay(int ms) {
 
 // Initialize USB subsystem
 int usb_init(void) {
-    printf("Initializing USB subsystem...\n");
+    usb_info("Initializing USB subsystem");
     
     // Clear controller and device arrays
     memset(usb_controllers, 0, sizeof(usb_controllers));
@@ -86,23 +92,23 @@ int usb_init(void) {
     
     // Scan for USB controllers on PCI bus
     if (usb_scan_controllers() < 0) {
-        printf("No USB controllers found\n");
+        usb_warn("No USB controllers found");
         return 0; // Not an error - just no USB hardware
     }
     
-    printf("Found %d USB controller(s)\n", num_controllers);
+    usb_info("Found %d USB controller(s)", num_controllers);
     
     // Initialize each controller and detect devices
     for (int i = 0; i < num_controllers; i++) {
         if (usb_controllers[i]) {
-            printf("Initializing USB controller %d...\n", i);
+            usb_info("Initializing USB controller %d", i);
             if (usb_reset_controller(usb_controllers[i]) == 0) {
                 usb_detect_devices(usb_controllers[i]);
             }
         }
     }
     
-    printf("USB initialization complete. Found %d mass storage device(s)\n", num_mass_storage);
+    usb_info("USB initialization complete. Found %d mass storage device(s)", num_mass_storage);
     return 0;
 }
 
@@ -114,7 +120,7 @@ int usb_scan_controllers(void) {
     
     // Check if PCI scanning is available
     if (!pci_bios_detect()) {
-        printf("PCI BIOS not available\n");
+        usb_err("PCI BIOS not available");
         return -1;
     }
     
@@ -151,7 +157,7 @@ int usb_scan_controllers(void) {
                     usb_controllers[num_controllers] = controller;
                     num_controllers++;
                     
-                    printf("Found USB controller: Type=%d, Base=0x%X\n", 
+                    usb_info("Found USB controller: Type=%d, Base=0x%X", 
                            controller->type, controller->base_address);
                     
                     if (num_controllers >= 4) return num_controllers;
@@ -191,7 +197,7 @@ int usb_reset_controller(usb_controller_t *controller) {
         outportw(base + UHCI_USBCMD, 0x0001);
         usb_delay(10);
         
-        printf("UHCI controller reset complete\n");
+        usb_debug("UHCI controller reset complete");
     }
     
     return 0;
@@ -201,27 +207,27 @@ int usb_reset_controller(usb_controller_t *controller) {
 int usb_detect_devices(usb_controller_t *controller) {
     if (!controller) return -1;
     
-    printf("USB: Detecting devices on controller (Type=%d, Base=0x%X)...\n", 
+    usb_debug("Detecting devices on controller (Type=%d, Base=0x%X)", 
            controller->type, controller->base_address);
     int devices_found = 0;
     
     // Try hardware detection first (for real hardware)
     for (int port = 0; port < controller->num_ports; port++) {
         if (usb_setup_device(controller, port) == 0) {
-            printf("Device detected on port %d\n", port);
+            usb_info("Device detected on port %d", port);
             devices_found++;
         }
     }
     
-    // Always try simulation mode for QEMU/emulation environment
-    // This ensures virtual USB devices are detected even if hardware detection runs
-    printf("USB: Trying simulation mode for virtual devices\n");
-    
-    // In QEMU simulation, we'll simulate finding a USB mass storage device
-    // since the virtual USB device is already attached via QEMU parameters
-    if (controller->type == 0 || controller->type == 2) {  // UHCI or EHCI
+    // Only create simulation device if no real devices were found
+    if (devices_found == 0) {
+        usb_debug("No real devices found, creating simulation device");
         
-        printf("USB: Creating simulated device for emulation environment\n");
+        // In QEMU simulation, we'll simulate finding a USB mass storage device
+        // since the virtual USB device is already attached via QEMU parameters
+        if (controller->type == 0 || controller->type == 2) {  // UHCI or EHCI
+        
+        usb_info("Creating simulated device for emulation environment");
         
         // Create a simulated USB mass storage device
         usb_device_t *device = malloc(sizeof(usb_device_t));
@@ -277,6 +283,9 @@ int usb_detect_devices(usb_controller_t *controller) {
         } else {
             printf("USB: Failed to allocate memory for device\n");
         }
+        } // Close the controller type check
+    } else {
+        usb_info("Real device detection complete, found %d device(s)", devices_found);
     }
     
     return devices_found;
@@ -289,27 +298,37 @@ int usb_setup_device(usb_controller_t *controller, int port) {
     // Skip if port number is invalid
     if (port >= controller->num_ports) return -1;
     
+    usb_debug("Checking port %d on controller type %d, base 0x%X", 
+              port, controller->type, controller->base_address);
+    
     DWORD base = controller->base_address;
     
     // Different port register handling for different controller types
     WORD port_reg;
     if (controller->type == 0) {  // UHCI
         port_reg = base + UHCI_PORTSC1 + (port * 2);
+    } else if (controller->type == 2) {  // EHCI
+        // EHCI has different port register layout - skip for now in educational OS
+        usb_debug("EHCI controller detected - skipping real hardware detection for port %d", port);
+        return -1;  // Skip EHCI for now
     } else {
-        // For OHCI/EHCI, use different register layout
-        port_reg = base + 0x44 + (port * 4);  // Simplified EHCI port register
+        // For OHCI, use different register layout
+        port_reg = base + 0x44 + (port * 4);  // Simplified OHCI port register
     }
     
     // Try to read port status with error checking
     WORD port_status = 0;
     port_status = inportw(port_reg);
     
+    usb_debug("Port %d status register 0x%X = 0x%04X", port, port_reg, port_status);
+    
     // Check if device is connected (bit 0)
     if (!(port_status & 0x0001)) {
+        usb_debug("No device connected on port %d", port);
         return -1;  // No device connected
     }
     
-    printf("USB: Device detected on port %d, status=0x%04X\n", port, port_status);
+    usb_info("USB device detected on port %d, status=0x%04X", port, port_status);
     
     // Reset the port (bit 9)
     outportw(port_reg, port_status | 0x0200);
@@ -429,23 +448,8 @@ int usb_bulk_transfer(usb_device_t *device, BYTE endpoint, void *data, DWORD len
     }
 }
 
-// Dummy PCI functions for compilation if not available
-int __attribute__((weak)) pci_bios_detect(void) {
-    // Simplified PCI detection
-    return 1;  // Assume PCI is available
-}
-
-DWORD __attribute__((weak)) pci_read_config_dword(int bus, int dev, int func, int offset) {
-    // Simplified PCI config read
-    // Return a simulated USB controller class code
-    if (offset == 0x08 && bus == 0 && dev == 0 && func == 0) {
-        return (PCI_CLASS_SERIAL_USB << 8) | 0x00;  // UHCI controller
-    }
-    if (offset == 0x20 && bus == 0 && dev == 0 && func == 0) {
-        return 0xE000;  // Simulated base address
-    }
-    return 0;
-}
+// Forward declarations for PCI functions
+// These should be implemented in the PCI bus driver
 
 // Register USB mass storage device as a block device
 int usb_register_block_device(usb_device_t *device) {
@@ -705,4 +709,23 @@ void usb_list_devices(void) {
             printf("\n");
         }
     }
+}
+
+// Simple PCI functions for educational purposes
+// In a real OS, these would be part of a proper PCI bus driver
+int pci_bios_detect(void) {
+    // Simplified PCI detection - just return 1 for educational OS
+    return 1;
+}
+
+DWORD pci_read_config_dword(int bus, int dev, int func, int offset) {
+    // Simplified PCI config read for educational purposes
+    // Return simulated values for USB controllers
+    if (offset == 0x08 && bus == 0 && dev == 0 && func == 0) {
+        return (PCI_CLASS_SERIAL_USB << 8) | 0x00;  // UHCI controller
+    }
+    if (offset == 0x20 && bus == 0 && dev == 0 && func == 0) {
+        return 0xE000;  // Simulated base address
+    }
+    return 0;
 }

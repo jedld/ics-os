@@ -576,8 +576,7 @@ void dex_init(){
       see pdispatch.c/pdispatch.h for details
    */
    process_dispatcher();   // defined in kernel/process/pdispatch.c
-    ;
-};
+}
 
 void end_func()
 {
