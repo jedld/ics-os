@@ -7,6 +7,11 @@
                IBM compatible x86 system
 */
 
+#include "../../dextypes.h"
+#include "../../devmgr/dex32_devmgr.h"
+#include "../../stdlib/dexstdlib.h"
+#include "ports.h"
+
 
 #define TOTAL_PORTS 65536
 

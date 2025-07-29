@@ -16,13 +16,11 @@ $qemu-system-i386 -fda ics-os-floppy.img
 ```
 ## Build Environment
 
-Ubuntu 16.04 64-bit is the last tested working build environment. Virtualbox can be used 
-to run this version of Ubuntu.  However, docker is the recommended build environment since new versions 
-of Ubuntu do not work anymore.
+Ubuntu 22.04 LTS 64-bit is the recommended build environment. The build system has been updated to work on modern 64-bit systems while cross-compiling the 32-bit operating system. Docker is the recommended build environment for consistent results across different host systems.
 
-### Using Docker to build
+### Using Docker to build (Recommended)
 
-ICS-OS is a 32-bit operating system and requires a 32-bit build environment. You need to install 
+ICS-OS is a 32-bit operating system that can run on both 32-bit and 64-bit (AMD64) hardware. You need to install 
 [docker](https://docs.docker.com/engine/install/ubuntu/) and [docker-compose](https://docs.docker.com/compose/install/) 
 to build the ICS-OS kernel and user applications.
 
@@ -46,6 +44,29 @@ you can perform the edits outside the container(in another terminal) and the cha
 Make the floppy image then boot.
 
 ```
+$sudo make floppy
+$make boot-floppy
+```
+
+### Testing on AMD64 systems
+
+To test the 32-bit OS on AMD64 hardware:
+
+```
+$make boot-floppy-amd64
+```
+
+### Alternative: Native build on Ubuntu 22.04
+
+Install the required dependencies:
+```
+$sudo apt update
+$sudo apt install build-essential nasm qemu-system-x86 gcc-multilib g++-multilib libc6-dev-i386 grub-common xorriso mtools dosfstools
+```
+
+Then build normally:
+```
+$make clean && make
 $sudo make floppy
 $make boot-floppy
 ```

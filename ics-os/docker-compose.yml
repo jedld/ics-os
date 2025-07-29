@@ -1,4 +1,4 @@
-version: "3"
+version: "3.8"
 services:
   ics-os-build:
     build: .
@@ -6,8 +6,18 @@ services:
       - /bin/bash
     volumes:
       - .:/home/ics-os
+    working_dir: /home/ics-os
     security_opt:
       - seccomp:unconfined
     cap_add:
       - SYS_PTRACE
       - SYS_ADMIN
+    environment:
+      - TERM=xterm-256color
+    # Enable X11 forwarding for GUI applications (optional)
+    # Uncomment the following lines if you need GUI support
+    # network_mode: host
+    # environment:
+    #   - DISPLAY=${DISPLAY}
+    # volumes:
+    #   - /tmp/.X11-unix:/tmp/.X11-unix:rw

@@ -1,5 +1,8 @@
 CC=gcc
-CFLAGS=-fno-stack-protector -fgnu89-inline -m32 -w -nostdlib -fno-builtin -ffreestanding -c -g 
+# Updatobj: scheduler.o fat.o iso9660.o devfs.o iomgr.o devmgr_error.o kernel32.o \
+		startup.o asmlib.o irqwrap.o 
+	#strip --strip-debug *.oLAGS for modern GCC with 32-bit target support
+CFLAGS=-fno-stack-protector -std=gnu99 -m32 -w -nostdlib -fno-builtin -ffreestanding -c -g -fno-pie -fno-pic
 ASM=nasm
 ASMFLAGS=-f elf32
 
@@ -12,7 +15,7 @@ bzImage: all
 all: obj Kernel32.bin
 
 obj: scheduler.o fat.o iso9660.o devfs.o iomgr.o devmgr_error.o kernel32.o \
-		startup.o asmlib.o irqwrap.o 
+		startup.o asmlib.o irqwrap.o
 	#strip --strip-debug *.o
 		
 kernel32.o: kernel32.c build.h
@@ -46,7 +49,7 @@ irqwrap.o:
 	$(ASM) $(ASMFLAGS) -o irqwrap.o irqwrap.asm
 	
 Kernel32.bin:
-	ld -melf_i386  -T lscript.ld -Map mapfile.txt
+	ld -melf_i386 -T lscript.ld -Map mapfile.txt --no-pie
 
 clean:
 	rm -f *.o

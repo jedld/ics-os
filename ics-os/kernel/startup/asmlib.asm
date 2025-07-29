@@ -1101,3 +1101,20 @@ APM_DS          equ 0xC8
 APM_CS16        equ 0xD0
 KEYB_TSS        equ 0xD8
 MOUSE_TSS	    equ 0xE0
+
+; Interrupt control functions
+global startints
+startints:
+   sti
+   ret
+
+global stopints
+stopints:
+   cli
+   ret
+
+; Task switching function
+global taskswitch
+taskswitch:
+   int 0x20
+   ret

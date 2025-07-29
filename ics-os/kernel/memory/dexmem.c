@@ -7,6 +7,11 @@
   with memory, except the high-level memory functions like malloc....
 */
 
+#include "../dextypes.h"
+#include "../devmgr/dex32_devmgr.h"
+#include "../process/process.h"
+#include "../startup/multiboot.h"
+
 
 
 

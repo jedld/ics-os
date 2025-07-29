@@ -1,9 +1,16 @@
+#include "../dextypes.h"
+#include "../hardware/chips/ports.h"
+#include "time.h"
+
 DWORD time_count = 0,  //used to store the number of seconds since dex was booted
 aux_time2=0;   //since the OS has the timer set to interrupt 200 times a second
-               //an auxillary counter is required so that it increments time_count
+               //an auxiliary counter is required so that it increments time_count
                //if it reaches 200
                
 int time_monthdays[12]= {0,31,59,90,120,151,181,212,243,273,304,334,365}; 
+
+// Global definition of time_systime
+dex32_datetime time_systime; 
 
 //the tme returned by the timer chip is in BCD, so we have to
 //perform some conversions to binary

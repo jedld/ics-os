@@ -6,7 +6,7 @@
   Description: This module handles the management of hardware ports found in an 
                IBM compatible x86 system
 */
-define TOTAL_PORTS 65536
+#define TOTAL_PORTS 65536
 
 //defines the sizes of data
 #define PORT_BYTE 0

@@ -51,17 +51,25 @@ livecd: prep_image
 	rm -fr tmp/
 
 boot-floppy:
-	qemu-system-i386 -net nic,model=rtl8139 -soundhw pcspk -fda ics-os-floppy.img -boot a -m 64M 
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M 
 
 boot-floppy-gdb:
-	qemu-system-i386 -net nic,model=rtl8139 -soundhw pcspk -fda ics-os-floppy.img -boot a -m 64M -s -S
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M -s -S
 
 boot-floppy-vnc:
-	qemu-system-i386 -net nic,model=rtl8139 -soundhw pcspk -fda ics-os-floppy.img -boot a -m 64M -vnc :1 
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M -vnc :1 
 
 boot-debug:
 	cd kernel ;	qemu-system-i386 -s -S -kernel Kernel32.bin -fda ../ics-os-floppy.img -m 64M -append "root (hdp0p0)" 
 
 
 boot-livecd:
-	qemu-system-i386 -cdrom ics-os-livecd.iso -boot cd -m 64M
+	qemu-system-i386 -cdrom ics-os-livecd.iso -boot d -m 64M
+
+# Add convenience targets for modern development
+boot-floppy-modern:
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 256M -enable-kvm
+
+# Test target for AMD64 compatibility (32-bit OS on 64-bit host)
+boot-floppy-amd64:
+	qemu-system-x86_64 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 256M -cpu qemu32

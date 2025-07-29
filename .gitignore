@@ -1,0 +1,35 @@
+# ICS-OS Build Artifacts
+*.o
+*.bin
+*.sym
+*.map
+vmdex
+Kernel32.bin
+Kernel32.sym
+mapfile.txt
+
+# Images and ISOs
+*.img
+*.iso
+ics-os-floppy.img
+ics-os-livecd.iso
+
+# Temporary directories
+tmp/
+mnt/
+
+# Development environment
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Test files
+test_*
