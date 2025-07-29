@@ -51,13 +51,13 @@ livecd: prep_image
 	rm -fr tmp/
 
 boot-floppy:
-	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M 
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -machine pcspk-audiodev=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 64M 
 
 boot-floppy-gdb:
-	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M -s -S
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -machine pcspk-audiodev=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 64M -s -S
 
 boot-floppy-vnc:
-	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 64M -vnc :1 
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -machine pcspk-audiodev=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 64M -vnc :1 
 
 boot-debug:
 	cd kernel ;	qemu-system-i386 -s -S -kernel Kernel32.bin -fda ../ics-os-floppy.img -m 64M -append "root (hdp0p0)" 
@@ -68,8 +68,36 @@ boot-livecd:
 
 # Add convenience targets for modern development
 boot-floppy-modern:
-	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 256M -enable-kvm
+	qemu-system-i386 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 256M -enable-kvm
 
 # Test target for AMD64 compatibility (32-bit OS on 64-bit host)
 boot-floppy-amd64:
-	qemu-system-x86_64 -netdev user,id=net0 -device rtl8139,netdev=net0 -machine pcspk-audiodev=none -fda ics-os-floppy.img -boot a -m 256M -cpu qemu32
+	qemu-system-x86_64 -netdev user,id=net0 -device rtl8139,netdev=net0 -audiodev none,id=none -drive file=ics-os-floppy.img,format=raw,if=floppy -boot a -m 256M -cpu qemu32
+
+# UEFI and USB Boot Support
+uefi-iso: vmdex
+	./scripts/build-uefi.sh iso
+
+usb-image: vmdex
+	./scripts/build-uefi.sh usb
+
+uefi-all: vmdex
+	./scripts/build-uefi.sh all
+
+# UEFI Testing Targets
+boot-uefi-iso: uefi-iso
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -cdrom ics-os-uefi.iso -m 256M -netdev user,id=net0 -device rtl8139,netdev=net0
+
+boot-uefi-iso-fallback: uefi-iso
+	qemu-system-x86_64 -cdrom ics-os-uefi.iso -m 256M -netdev user,id=net0 -device rtl8139,netdev=net0
+
+boot-usb: usb-image
+	qemu-system-x86_64 -drive format=raw,file=ics-os-usb.img -m 256M -netdev user,id=net0 -device rtl8139,netdev=net0
+
+boot-usb-uefi: usb-image
+	qemu-system-x86_64 -bios /usr/share/ovmf/OVMF.fd -drive format=raw,file=ics-os-usb.img -m 256M -netdev user,id=net0 -device rtl8139,netdev=net0
+
+# Clean UEFI build artifacts
+clean-uefi:
+	rm -f ics-os-uefi.iso ics-os-usb.img
+	./scripts/build-uefi.sh clean

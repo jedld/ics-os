@@ -4,7 +4,10 @@
  * made some concurrency adjustments
  * ported for the DEX 32 operating system */
 /* Copyright (C) 1994 DJ Delorie, see COPYING.DJ for details */
+#ifndef _SIZE_T_DEFINED
+#define _SIZE_T_DEFINED
 #define size_t unsigned int
+#endif
 
 /*
  * Copyright (c) 1983 Regents of the University of California.

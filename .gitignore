@@ -13,10 +13,14 @@ mapfile.txt
 *.iso
 ics-os-floppy.img
 ics-os-livecd.iso
+ics-os-uefi.iso
+ics-os-usb.img
 
 # Temporary directories
 tmp/
 mnt/
+tmp-uefi/
+mnt-uefi/
 
 # Development environment
 .vscode/

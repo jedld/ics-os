@@ -56,3 +56,6 @@ clean:
 	rm -f Kernel32.bin
 	rm -f Kernel32.sym
 	rm -f vmdex
+	rm -f Kernel32.sym
+	rm -f vmdex
+	$(MAKE) -C hardware/usb clean

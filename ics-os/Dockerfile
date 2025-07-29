@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Update package lists and install basic dependencies
 RUN apt-get update && apt-get upgrade -y
 
-# Install modern build tools with 32-bit support
+# Install modern build tools with 32-bit support and UEFI/USB boot tools
 RUN apt-get install -y \
     build-essential \
     nasm \
@@ -23,9 +23,18 @@ RUN apt-get install -y \
     wget \
     curl \
     grub-common \
+    grub-pc-bin \
+    grub-efi-amd64-bin \
+    grub-efi-ia32-bin \
     xorriso \
     mtools \
     dosfstools \
+    parted \
+    gdisk \
+    efibootmgr \
+    ovmf \
+    file \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 # Try to install TinyCC from package manager (simpler and more compatible)

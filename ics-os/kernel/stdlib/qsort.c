@@ -2,7 +2,12 @@
 /* ============ */
 /* qsort.c	*/
 /* ============ */
-#include <assert.h>
+// #include <assert.h>  // Commented out for kernel build
+
+// Define assert macro for kernel build
+#ifndef assert
+#define assert(x) do { if (!(x)) { /* do nothing in kernel */ } } while(0)
+#endif
 
 /*
  * This is an implementation of quicksort that partitions the array

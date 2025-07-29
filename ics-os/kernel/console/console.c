@@ -27,6 +27,10 @@
 
 #include "console.h"
 
+// Forward declarations for USB functions
+extern void usb_list_controllers(void);
+extern void usb_list_devices(void);
+
 
 void runner(){
    int i=0;
@@ -642,6 +646,25 @@ int console_execute(const char *str){
       hardware_cpuinfo mycpu;
       hardware_getcpuinfo(&mycpu);
       hardware_printinfo(&mycpu);
+   }else
+   if (strcmp(u,"usb") == 0){          //-- Displays USB device information.
+      u = strtok(0, " ");
+      if (u != 0) {
+         if (strcmp(u, "controllers") == 0) {
+            usb_list_controllers();
+         } else if (strcmp(u, "devices") == 0) {
+            usb_list_devices();
+         } else {
+            printf("Usage: usb [controllers|devices]\n");
+            printf("  controllers - List USB controllers\n");
+            printf("  devices     - List USB mass storage devices\n");
+         }
+      } else {
+         // No arguments, show both
+         usb_list_controllers();
+         printf("\n");
+         usb_list_devices();
+      }
    }else            
    if (strcmp(u,"exit") == 0){         //-- Exits a console session.
       fg_exit();

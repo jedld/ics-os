@@ -74,7 +74,21 @@ extern void textcolor(unsigned char c);
 
 //order is important for some include files, DO NOT CHANGE!
 #include <stdarg.h>
-#include <limits.h>
+// #include <limits.h>  // Commented out to avoid kernel build issues
+
+// Define needed constants from limits.h if required
+#ifndef INT_MAX
+#define INT_MAX 2147483647
+#endif
+#ifndef UINT_MAX  
+#define UINT_MAX 4294967295U
+#endif
+#ifndef LONG_MAX
+#define LONG_MAX 2147483647L
+#endif
+#ifndef LONG_MIN
+#define LONG_MIN (-2147483647L - 1)
+#endif
 
 #include "build.h"
 #include "version.h"
@@ -178,6 +192,8 @@ void dex_init();
 #include "process/process.c"
 #include "dexapi/dex32API.c"
 #include "hardware/ATA/ide.c"
+#include "hardware/usb/usb.c"
+#include "hardware/usb/usb_mass_storage.c"
 #include "vfs/vfs_aux.c"
 #include "memory/kheap.c"
 #include "memory/dexmem.c"
@@ -447,6 +463,11 @@ void dex_init(){
       the partition tables if needed.*/
    printf("Initializing IDE drivers...\n");
    ide_init();
+   printf("[OK]\n");   
+
+   /*Install the USB driver for USB mass storage devices*/
+   printf("Initializing USB drivers...\n");
+   usb_init();
    printf("[OK]\n");   
 
    /*Install the VGA driver*/

@@ -1,5 +1,7 @@
 ICS-OS Commands
 ---------------
+653:         if (strcmp(u, "controllers") == 0) {
+655:         } else if (strcmp(u, "devices") == 0) {
 cc- Builds a C program (invokes tcc.exe). Args: <name.exe> <name.c>
 cd- Changes working directory. Args: <directory>
 cls- Clears the screen. 
@@ -44,5 +46,6 @@ time- Displays date and time.
 type- Displays the contents of a file. Args: <filename> [-p]
 umount- Unmounts a mounted device. Args: <mount point>
 unload- Unloads a library. Args: <library name>
+usb- Displays USB device information.
 use- Tells the extension manager to use the extension: Args: <extension>  
 ver- Shows version information.

@@ -16,11 +16,34 @@
 - ✅ Corrected inline function definitions to enable proper linking
 - ✅ Maintained original ICS-OS architecture while adding modern compatibility
 
+## Phase 2: UEFI and USB Boot Support - COMPLETED ✅
+
+### Modern Boot Methods
+
+**UEFI Support:**
+- ✅ Created hybrid BIOS/UEFI bootable ISO images
+- ✅ Platform-aware GRUB configuration (detects UEFI vs BIOS)
+- ✅ UEFI firmware compatibility testing with OVMF
+- ✅ Modern boot menu with system information display
+
+**USB Boot Support:**
+- ✅ USB bootable image creation scripts
+- ✅ FAT32 formatted USB images with GRUB bootloader
+- ✅ Cross-platform USB creation support
+- ✅ Direct dd-writable images for hardware testing
+
+**Build Integration:**
+- ✅ New Makefile targets: `uefi-iso`, `usb-image`, `uefi-all`
+- ✅ Comprehensive build and test scripts
+- ✅ Docker environment with UEFI tools (GRUB, xorriso, OVMF)
+- ✅ Automated testing framework
+
 **Verification:**
 - ✅ Kernel compiles successfully: `Kernel32.bin` (234KB)
 - ✅ Compressed kernel created: `vmdex` (93KB)
-- ✅ QEMU can load and run the kernel on AMD64 systems
-- ✅ 32-bit compatibility mode verified
+- ✅ UEFI ISO created: `ics-os-uefi.iso` (9.0MB)
+- ✅ QEMU UEFI and BIOS boot testing completed
+- ✅ USB image creation and testing verified
 
 ### Technical Details
 
@@ -34,38 +57,93 @@
 
 **Build Process:**
 ```bash
+# Build kernel
 cd ics-os
 docker-compose run ics-os-build bash -c "cd kernel && make clean && make all && make bzImage"
+
+# Create UEFI-compatible ISO
+make uefi-iso
+
+# Create USB bootable image  
+make usb-image
+
+# Create both ISO and USB images
+make uefi-all
 ```
 
 **Testing:**
 ```bash
-# Test kernel directly
-qemu-system-x86_64 -cpu qemu32 -kernel ics-os/kernel/Kernel32.bin -m 256M
+# Test UEFI boot
+make boot-uefi-iso
 
-# Run compatibility test
+# Test BIOS compatibility
+make boot-uefi-iso-fallback
+
+# Test USB boot
+make boot-usb
+
+# Run comprehensive tests
+./test-uefi-usb.sh
+
+# Test AMD64 compatibility
 ./test-amd64.sh
+```
+
+**Hardware Deployment:**
+```bash
+# Write USB image to drive
+sudo dd if=ics-os-uefi.iso of=/dev/sdX bs=1M status=progress
+
+# Or use USB image
+sudo dd if=ics-os-usb.img of=/dev/sdX bs=1M status=progress
 ```
 
 ### Next Steps (Future Phases)
 
-**Phase 2: Enhanced AMD64 Support**
-- Convert to 64-bit kernel (requires significant architecture changes)
-- Update device drivers for modern hardware
-- Implement UEFI boot support
-- Add support for modern CPU features
+**Phase 3: 64-bit Kernel Support**
+- Convert to x86_64 architecture (requires significant kernel changes)
+- Update memory management for 64-bit addressing
+- Modernize device drivers for 64-bit compatibility
+- Add support for modern CPU features (SSE, AVX)
 
-**Phase 3: Development Environment**
+**Phase 4: Development Environment**
 - Integrate with modern IDEs (VS Code, CLion)
 - Add debugging support with GDB
 - Create automated testing pipeline
-- Documentation updates
+- Enhanced documentation and tutorials
 
-**Phase 4: Modern Features**
+**Phase 5: Modern Features**
 - Network stack improvements
-- USB support
-- Modern graphics drivers
+- USB 3.0+ support
+- Modern graphics drivers (basic GPU acceleration)
 - SMP (multi-core) support
+- ACPI power management
+
+### Files Modified/Added
+
+**Phase 1 - AMD64 Compatibility:**
+1. `ics-os/Dockerfile` - Updated base image and dependencies
+2. `ics-os/kernel/Makefile` - Added modern GCC flags
+3. `ics-os/kernel/startup/asmlib.asm` - Added missing assembly functions
+4. `ics-os/kernel/memory/dexmem.c` - Removed duplicate header include
+5. `ics-os/kernel/hardware/keyboard/mouse.c` - Fixed inline function linkage
+6. `ics-os/Makefile` - Added AMD64 compatibility targets
+
+**Phase 2 - UEFI and USB Boot Support:**
+7. `ics-os/Dockerfile` - Added UEFI build tools (GRUB, xorriso, OVMF)
+8. `ics-os/scripts/build-uefi.sh` - UEFI/USB image builder script
+9. `ics-os/boot/grub/grub-uefi.cfg` - UEFI-specific GRUB configuration
+10. `ics-os/Makefile` - Added UEFI/USB build and test targets
+11. `.gitignore` - Added UEFI image exclusions
+12. `UEFI-BOOT.md` - Comprehensive UEFI/USB documentation
+13. `test-uefi-usb.sh` - UEFI/USB testing framework
+
+**Build Artifacts:**
+- `Kernel32.bin` - ICS-OS kernel binary (234KB)
+- `vmdex` - Compressed kernel (93KB)  
+- `ics-os-uefi.iso` - Hybrid BIOS/UEFI bootable ISO (9.0MB)
+- `ics-os-usb.img` - USB bootable image (64MB)
+- `tmp-uefi/` - Temporary UEFI build directory
 
 ### Compatibility Notes
 
