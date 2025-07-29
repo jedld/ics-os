@@ -180,6 +180,10 @@ int clustertoblock(BPB *bpbblock,int cluster)
          else
    start_sector+=bpbblock->num_fats * bpbblock->sectors_per_fat;
    //computes sectors used by a FAT12/16 directory                   
+   if (bpbblock->bytes_per_sector == 0) {
+       printf("ERROR: bytes_per_sector is 0, cannot compute sectors!\n");
+       return 0;
+   }
    int root_sectors =((bpbblock->num_root_dir_ents * 32) + (bpbblock->bytes_per_sector - 1)) 
       / bpbblock->bytes_per_sector;
 
@@ -201,10 +205,18 @@ DWORD fat_sectors_per_fat(BPB *bpbblock)
 
 void readBPB(BPB *bpbblock,int id)
 {
+   // printf("readBPB: Reading BPB from device %d\n", id);
    startints();
    DWORD handle=dex32_requestIO(id,IO_READ,0,1,bpbblock);
    while (!dex32_IOcomplete(handle));
    dex32_closeIO(handle);
+   
+   // Debug: Check if BPB data looks valid
+   // printf("readBPB: bytes_per_sector = %d\n", bpbblock->bytes_per_sector);
+   // printf("readBPB: sectors_per_cluster = %d\n", bpbblock->sectors_per_cluster);
+   if (bpbblock->bytes_per_sector == 0) {
+       printf("ERROR: Invalid BPB - bytes_per_sector is 0!\n");
+   }
 };
 
 void interpretBPB(BPB *bpbblock)
@@ -1503,6 +1515,10 @@ int fillsectorinfo(fatdirentry *dir,BPB *bpbblock,DWORD *sectinfo,int id)
       }; //read the FAT into memory*/
       };
       do {
+         if (bpbblock->bytes_per_sector == 0) {
+             printf("ERROR: bytes_per_sector is 0 in sector calculation!\n");
+             return 0;
+         }
          b=((cluster - 2)*(bpbblock->sectors_per_cluster) )+
       bpbblock->num_boot_sectors+
       (bpbblock->num_fats*bpbblock->sectors_per_fat)+

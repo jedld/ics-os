@@ -217,6 +217,7 @@ int     fwrite(char *buf, int itemsize, int n, file_PCB* fhandle);
 vfs_node *getdirectory(const char *name);
 char    *getpath(vfs_node *ptr,char *s);
 int     mkdir(const char *name);
+int     mkdir_recursive(const char *path);
 file_PCB *openfilex(char *filename,int mode);
 void    parsedir(char *fullpath,char *loc,char *name);
 int     rename (const char *oldname, const char *newname);

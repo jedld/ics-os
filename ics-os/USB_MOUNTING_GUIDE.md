@@ -27,24 +27,41 @@ lsdev
 
 Look for USB devices named like `usb0`, `usb1`, etc.
 
-## 🗂️ Step 3: Mount the USB Drive
+## Mounting USB Devices
 
-### Basic Mount Command:
-```bash
-mount <filesystem> <device> <mount_point>
-```
+1. **Boot ICS-OS** (see above for boot instructions)
 
-### Examples:
+2. **Insert USB device** (in QEMU, the virtual USB device is automatically available)
 
-#### Mount USB drive with FAT filesystem:
-```bash
-mount fat usb0 /mnt/usb
-```
+3. **Check available USB devices:**
+   ```
+   usb
+   ```
+   This should show detected USB mass storage devices like `usb0`, `usb1`, etc.
 
-#### Mount USB drive with FAT32:
-```bash
-mount fat usb0 /tmp/usb
-```
+4. **Create mount directory (first time only):**
+   ```
+   mkdir /mnt
+   ```
+
+5. **Mount the USB device:**
+   ```
+   mount fat usb0 /mnt/usb
+   ```
+   - `fat` = filesystem type (FAT12/FAT16/FAT32)
+   - `usb0` = device name (first USB mass storage device)
+   - `/mnt/usb` = mount point
+
+6. **Access mounted files:**
+   ```
+   ls /mnt/usb
+   cat /mnt/usb/filename.txt
+   ```
+
+7. **Unmount when done:**
+   ```
+   umount /mnt/usb
+   ```
 
 ## 📁 Step 4: Access Mounted Files
 

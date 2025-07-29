@@ -1313,6 +1313,51 @@ void findfile(char *name)
     }
 };
 
+// Recursively create directories (like mkdir -p)
+int mkdir_recursive(const char *path)
+{
+    char temp_path[255];
+    char dirname[255], fname[255];
+    vfs_node *parent_dir;
+    
+    // Check if directory already exists
+    if (vfs_searchname(path) != 0) {
+        return 0; // Already exists, success
+    }
+    
+    // Copy path to temporary buffer
+    strcpy(temp_path, path);
+    
+    // Separate directory and filename
+    parsedir(temp_path, dirname, fname);
+    
+    // Special case: if dirname is root "/", it should already exist
+    if (strcmp(dirname, "/") == 0) {
+        parent_dir = vfs_searchname("/");
+        if (parent_dir == 0) {
+            printf("Error: Root directory not found!\n");
+            return -1;
+        }
+    } else {
+        // Recursively ensure parent directory exists
+        parent_dir = vfs_searchname(dirname);
+        if (parent_dir == 0) {
+            // Parent doesn't exist, create it recursively
+            if (mkdir_recursive(dirname) != 0) {
+                return -1; // Failed to create parent
+            }
+            parent_dir = vfs_searchname(dirname);
+            if (parent_dir == 0) {
+                printf("Failed to create parent directory: %s\n", dirname);
+                return -1;
+            }
+        }
+    }
+    
+    // Now create the directory using regular mkdir
+    return mkdir(path);
+}
+
 vfs_node *mkvirtualdir(const char *name,int fsid,int deviceid)
 {
     vfs_node *destdir; //obtain the destination directory
@@ -1337,11 +1382,19 @@ vfs_node *mkvirtualdir(const char *name,int fsid,int deviceid)
     //get the vfs node of the destination directory
     destdir=vfs_searchname(dirname);
 
-    //make sure that this directory exists
+    //make sure that this directory exists, create if necessary
     if (destdir==0)
     {
-        printf("error locating directory!\n");
-        return -1;
+        printf("Parent directory %s doesn't exist, creating recursively...\n", dirname);
+        if (mkdir_recursive(dirname) != 0) {
+            printf("Failed to create parent directory: %s\n", dirname);
+            return -1;
+        }
+        destdir = vfs_searchname(dirname);
+        if (destdir == 0) {
+            printf("error locating directory after creation!\n");
+            return -1;
+        }
     };
 
     //take note of the old values so that we could rollback

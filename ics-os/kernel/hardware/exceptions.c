@@ -118,6 +118,24 @@ void exc_showdump(DWORD location,int type,DWORD pf_info)
    #ifdef FULLSCREENERROR   
    direntry=getpagetablephys(location, current_process->pagedirloc);
    pageentry=getphys(location,current_process->pagedirloc);
+   
+   // Don't clear screen immediately - preserve debug output
+   printf("\n\n*** %s ***\n", fault_type);
+   printf("Faulting process: %s (PID: %d)\n", current_process->name, current_process->processid);
+   printf("Invalid memory location: 0x%x\n", location);
+   printf("Faulting instruction at: 0x%x\n", current_process->regs.EIP);
+   printf("Page dir entry: 0x%x, Page table entry: 0x%x\n", direntry, pageentry);
+   printf("EAX=0x%x EBX=0x%x ECX=0x%x EDX=0x%x\n", 
+          current_process->regs.EAX, current_process->regs.EBX, 
+          current_process->regs.ECX, current_process->regs.EDX);
+   printf("ESP=0x%x EBP=0x%x ESI=0x%x EDI=0x%x\n",
+          current_process->regs.ESP, current_process->regs.EBP,
+          current_process->regs.ESI, current_process->regs.EDI);
+   printf("\nPress any key for detailed fault screen...\n");
+   
+   // Wait for keypress before showing full screen
+   getch();
+   
    showdumpout = Dex32CreateDDL();
    beforeout = Dex32SetActiveDDL(showdumpout);
    
