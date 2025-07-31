@@ -120,6 +120,7 @@ extern void textcolor(unsigned char c);
 #include "filesystem/fat12.h"
 #include "filesystem/iso9660.h"
 #include "filesystem/devfs.h"
+#include "filesystem/exfat.h"
 #include "process/event.h"
 #include "devmgr/extensions.h"
 #include "process/environment.h"
@@ -518,6 +519,9 @@ void dex_init(){
     
    //install and initialize the fat12 filesystem driver
    fat_register("fat");
+    
+   //initialize the exFAT filesystem
+   exfat_register("exfat");
     
    //initialize the CDFS (ISO9660/Joliet) filesystem
    iso9660_init();

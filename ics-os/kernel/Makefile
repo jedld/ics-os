@@ -14,7 +14,7 @@ bzImage: all
 
 all: obj Kernel32.bin
 
-obj: scheduler.o fat.o iso9660.o devfs.o iomgr.o devmgr_error.o kernel32.o \
+obj: scheduler.o fat.o iso9660.o devfs.o exfat.o iomgr.o devmgr_error.o kernel32.o \
 		startup.o asmlib.o irqwrap.o
 	#strip --strip-debug *.o
 		
@@ -32,6 +32,9 @@ iso9660.o:
 	
 devfs.o:
 	$(CC) $(CFLAGS) -o devfs.o filesystem/devfs.c
+
+exfat.o:
+	$(CC) $(CFLAGS) -o exfat.o filesystem/exfat.c
 	
 iomgr.o:
 	$(CC) $(CFLAGS) -o iomgr.o iomgr/iosched.c
