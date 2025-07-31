@@ -37,11 +37,52 @@
 #include "../../stdlib/dexstdlib.h"
 #include "../../devmgr/dex32_devmgr.h"
 
-// Simple logging for educational OS - replace complex logging with printf
-#define usb_debug(fmt, ...)    printf("USB DEBUG: " fmt "\n", ##__VA_ARGS__)
-#define usb_info(fmt, ...)     printf("USB INFO: " fmt "\n", ##__VA_ARGS__)  
-#define usb_warn(fmt, ...)     printf("USB WARN: " fmt "\n", ##__VA_ARGS__)
-#define usb_err(fmt, ...)      printf("USB ERROR: " fmt "\n", ##__VA_ARGS__)
+// USB Kernel Logging - self-contained logging system
+static char usb_log_buffer[4096];
+static int usb_log_pos = 0;
+
+void usb_log_write(const char* level, const char* fmt, ...) {
+    char temp_buffer[256];
+    va_list args;
+    int len;
+    
+    va_start(args, fmt);
+    len = vsprintf(temp_buffer, fmt, args);
+    va_end(args);
+    
+    // Write to console immediately for real-time feedback
+    printf("USB %s: %s\n", level, temp_buffer);
+    
+    // Also store in persistent buffer for later retrieval
+    int msg_len = sprintf(&usb_log_buffer[usb_log_pos], "USB %s: %s\n", level, temp_buffer);
+    usb_log_pos += msg_len;
+    if (usb_log_pos >= sizeof(usb_log_buffer) - 256) {
+        usb_log_pos = 0; // Wrap around to prevent overflow
+    }
+}
+
+#define usb_debug(fmt, ...)    usb_log_write("DEBUG", fmt, ##__VA_ARGS__)
+#define usb_info(fmt, ...)     usb_log_write("INFO", fmt, ##__VA_ARGS__)  
+#define usb_warn(fmt, ...)     usb_log_write("WARN", fmt, ##__VA_ARGS__)
+#define usb_err(fmt, ...)      usb_log_write("ERROR", fmt, ##__VA_ARGS__)
+
+// Function to dump USB log to console (simulates file logging)
+void usb_dump_log_to_file(void) {
+    printf("\n");
+    printf("=====================================\n");
+    printf("USB KERNEL LOG DUMP\n");
+    printf("=====================================\n");
+    printf("%s", usb_log_buffer);
+    printf("=====================================\n");
+    printf("END OF USB LOG\n");
+    printf("=====================================\n");
+    printf("\n");
+}
+
+// Function to get the USB log buffer (for external access)
+const char* usb_get_log_buffer(void) {
+    return usb_log_buffer;
+}
 
 // External PCI functions (should be implemented in pcibus driver)
 extern int pci_bios_detect(void);
@@ -109,6 +150,10 @@ int usb_init(void) {
     }
     
     usb_info("USB initialization complete. Found %d mass storage device(s)", num_mass_storage);
+    
+    // Dump USB log for debugging
+    usb_dump_log_to_file();
+    
     return 0;
 }
 

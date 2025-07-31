@@ -33,6 +33,9 @@
  *                   South Africa
  */
 
+#ifndef FLOPPY_H
+#define FLOPPY_H
+
 #define TRUE 1
 #define FALSE 0
 #define BOOL int
@@ -158,4 +161,6 @@ BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read);
 BOOL fdc_rw_hts(int head,int track,int sector,BYTE *blockbuff,BOOL read);
 BOOL format_track(BYTE track,DrvGeom *g);
 int floppy_install();
+
+#endif /* FLOPPY_H */
 

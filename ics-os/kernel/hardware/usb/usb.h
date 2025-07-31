@@ -240,4 +240,8 @@ int usb_sendmessage(int type, int message);
 void usb_list_controllers(void);
 void usb_list_devices(void);
 
+// USB logging functions
+void usb_dump_log_to_file(void);
+const char* usb_get_log_buffer(void);
+
 #endif // USB_H

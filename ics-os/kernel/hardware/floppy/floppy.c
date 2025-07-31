@@ -33,6 +33,29 @@
  *                   South Africa
  */
 
+#define NULL 0
+
+#include "../../dextypes.h"
+#include "../../hardware/chips/ports.h"
+#include "../../stdlib/dexstdlib.h"
+#include "../../stdlib/time.h"
+#include "../../process/sync.h"
+#include "../../devmgr/dex32_devmgr.h"
+#include "../../console/console.h"
+#include "floppy.h"
+
+// IRQ definitions
+#define IRQ_TIMER 1
+#define IRQ_CASCADE 4   /* FOR SLAVE PIC */
+#define IRQ_KEYBOARD 2
+#define IRQ_FDC 64
+#define IRQ_MOUSE 16
+
+//pointer to vga mem for debugging
+extern char *scr_debug;
+//timer count for cache timestamp  
+extern unsigned int time_count;
+
 
 int flop_getblocksize()
 {
@@ -292,7 +315,7 @@ int getbyte()
 /* this waits for FDC command to complete */
 BOOL waitfdc(BOOL sensei)
 {
-   tmout = 100*2;   /* set timeout to 1 second */
+   tmout = 200*2;   /* Increased timeout to 2 seconds for better reliability */
 
    /* wait for IRQ6 handler to signal command finished */
    while (!done && tmout);
@@ -441,7 +464,7 @@ void motoron(void)
    if (!motor) {
       mtick = -1;     /* stop motor kill countdown */
       outportb(FDC_DOR,0x1c);
-      delay(300);
+      delay(150);     /* Reduced from 300ms to 150ms - still safe but faster */
       motor = TRUE;
    }
 }
@@ -450,7 +473,7 @@ void motoron(void)
 void motoroff(void)
 {
    if (motor) {
-      mtick = 400;   /* start motor kill countdown: 36 ticks ~ 2s */
+      mtick = 800;   /* Increased motor kill countdown: 72 ticks ~ 4s to reduce motor cycling */
    }
 }
 
@@ -488,11 +511,11 @@ BOOL seek(int track)
    if (!waitfdc(TRUE))
      return FALSE;     /* timeout! */
 
-   /* now let head settle for 15ms */
-   delay(15);
-//   usleep(15000);
+   /* Reduced head settle time from 15ms to 10ms for faster seeks */
+   delay(10);
 
-   motoroff();
+   /* Don't turn motor off here - let it stay on for subsequent operations */
+   /* motoroff(); - Commented out to reduce motor cycling */
 
    /* check that seek worked */
    if ((sr0 != 0x20) || (fdc_track != track))
@@ -553,14 +576,18 @@ BOOL read_block(int block,BYTE *blockbuff,DWORD numblocks)
     if (getcache(blockbuff,block,numblocks)) 
     {return 1;};
 
+    /* Keep motor on for entire multi-block operation */
+    motoron();
+
     for (i=0;i<numblocks;i++)
     {
        res = 0;
        
        //the driver has a tendency to not work so we
-       //retry 3 times in case of failure
+       //retry 2 times instead of 3 for faster operation
 
-       while (retry<3&&res==0)
+       retry = 0;
+       while (retry<2&&res==0)
         {
               if (fdc_rw(block + i ,temp,TRUE))
               {
@@ -572,12 +599,18 @@ BOOL read_block(int block,BYTE *blockbuff,DWORD numblocks)
               retry++;
         };
 
-      if (res==0) {strcpy(scr_debug,"  "); return 0;};
+      if (res==0) {
+         motoroff(); /* Turn off motor on failure */
+         strcpy(scr_debug,"  "); 
+         return 0;
+      };
       memcpy(blockbuff + ofs,temp,512);
       ofs += 512;
    
     };
 
+    /* Only turn off motor after completing all blocks */
+    motoroff();
    return res;
 }
 
@@ -588,20 +621,31 @@ BOOL write_block(int block,BYTE *blockbuff, DWORD numblocks)
   int res=0;
   int retry=0;
   int i,ofs = 0;
+  
+  /* Keep motor on for entire multi-block operation */
+  motoron();
+  
   for (i=0; i<numblocks; i++)
   {
           res=1;
           if (!storecache(blockbuff + ofs, block+ i,1))
           {
                   res=0;
-                  for (retry=0;retry<3&&res==0;retry++) 
+                  retry = 0;
+                  /* Reduced retry count from 3 to 2 for faster operation */
+                  for (retry=0;retry<2&&res==0;retry++) 
                   res=fdc_rw(block + i,blockbuff + ofs,FALSE);
           };
-          if (res==0) return 0; 
+          if (res==0) {
+             motoroff(); /* Turn off motor on failure */
+             return 0; 
+          }
      ofs += 512;
   };
   
-   return res;
+  /* Only turn off motor after completing all blocks */
+  motoroff();
+  return res;
 }
 
 /*

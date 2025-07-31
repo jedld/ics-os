@@ -7,6 +7,7 @@ vmdex
 Kernel32.bin
 Kernel32.sym
 mapfile.txt
+ics-os/kernel.log
 
 # Images and ISOs
 *.img
