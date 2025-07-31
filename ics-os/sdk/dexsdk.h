@@ -139,6 +139,77 @@ enum COLORS {
 
 extern FILE *stdout, *stdin, *stderr;
 
+/*============keyboard input constants================*/
+
+/* Keyboard meta bits for enhanced key handling */
+#define KBD_META_ALT	0x0200	/* Alt is pressed */
+#define KBD_META_CTRL	0x0400	/* Ctrl is pressed */
+#define KBD_META_SHIFT	0x0800	/* Shift is pressed */
+#define KBD_META_ANY	(KBD_META_ALT | KBD_META_CTRL | KBD_META_SHIFT)
+
+/* Special key codes */
+#define KEY_F1		0x80
+#define KEY_F2		0x81
+#define KEY_F3		0x82
+#define KEY_F4		0x83
+#define KEY_F5		0x84
+#define KEY_F6		0x85
+#define KEY_F7		0x86
+#define KEY_F8		0x87
+#define KEY_F9		0x88
+#define KEY_F10		0x89
+#define KEY_F11		0x8A
+#define KEY_F12		0x8B
+#define KEY_INS		0x90
+#define KEY_DEL		0x91
+#define KEY_HOME	0x92
+#define KEY_END		0x93
+#define KEY_PGUP	0x94
+#define KEY_PGDN	0x95
+#define KEY_LEFT	0x96
+#define KEY_UP		0x97
+#define KEY_DOWN	0x98
+#define KEY_RIGHT	0x99
+
+/* Control key combinations */
+#define CTRL_A		(KBD_META_CTRL | 'a')
+#define CTRL_B		(KBD_META_CTRL | 'b')
+#define CTRL_C		(KBD_META_CTRL | 'c')
+#define CTRL_D		(KBD_META_CTRL | 'd')
+#define CTRL_E		(KBD_META_CTRL | 'e')
+#define CTRL_F		(KBD_META_CTRL | 'f')
+#define CTRL_G		(KBD_META_CTRL | 'g')
+#define CTRL_H		(KBD_META_CTRL | 'h')
+#define CTRL_I		(KBD_META_CTRL | 'i')
+#define CTRL_J		(KBD_META_CTRL | 'j')
+#define CTRL_K		(KBD_META_CTRL | 'k')
+#define CTRL_L		(KBD_META_CTRL | 'l')
+#define CTRL_M		(KBD_META_CTRL | 'm')
+#define CTRL_N		(KBD_META_CTRL | 'n')
+#define CTRL_O		(KBD_META_CTRL | 'o')
+#define CTRL_P		(KBD_META_CTRL | 'p')
+#define CTRL_Q		(KBD_META_CTRL | 'q')
+#define CTRL_R		(KBD_META_CTRL | 'r')
+#define CTRL_S		(KBD_META_CTRL | 's')
+#define CTRL_T		(KBD_META_CTRL | 't')
+#define CTRL_U		(KBD_META_CTRL | 'u')
+#define CTRL_V		(KBD_META_CTRL | 'v')
+#define CTRL_W		(KBD_META_CTRL | 'w')
+#define CTRL_X		(KBD_META_CTRL | 'x')
+#define CTRL_Y		(KBD_META_CTRL | 'y')
+#define CTRL_Z		(KBD_META_CTRL | 'z')
+
+/* Key event structure for enhanced keyboard handling */
+typedef struct {
+    int code;           /* Raw key code */
+    char ascii;         /* ASCII character (if printable) */
+    int ctrl;           /* 1 if Ctrl pressed */
+    int alt;            /* 1 if Alt pressed */
+    int shift;          /* 1 if Shift pressed */
+    int is_special;     /* 1 if special key (arrows, function keys, etc.) */
+    int is_printable;   /* 1 if printable ASCII character */
+} key_event_t;
+
 /*============other constants================*/
 #ifndef NULL
 #define NULL 0
@@ -207,6 +278,11 @@ void free(void *ptr);
 int kb_deq(int *code);
 int getchar();
 char getch();
+int getch_enhanced();
+int get_key_event(key_event_t *event);
+int is_ctrl_key(int key);
+int is_special_key(int key);
+char get_ascii_from_key(int key);
 void getparameters(char *buf);
 int getx();
 int gety();

@@ -46,10 +46,6 @@
 // Additional function declarations
 int atoi(const char *str);
 char *gets(char *buf);
-int kb_deq(int *code);
-
-// Keyboard meta bits (from keyboard.h)
-#define KBD_META_CTRL 0x0400
 
 #define MAX_LINES 1000
 #define MAX_LINE_LENGTH 200
@@ -97,7 +93,7 @@ void editor_new_file(void);
 void editor_refresh_screen(void);
 void editor_draw_status_line(void);
 void editor_draw_help_line(void);
-void editor_handle_key(int key);
+void editor_handle_key(key_event_t *event);
 void editor_move_cursor(int row, int col);
 void editor_insert_char(char c);
 void editor_delete_char(void);
@@ -116,7 +112,6 @@ int editor_get_line_number_width(void);
 void editor_scroll_to_cursor(void);
 void editor_show_message(const char* message, int color);
 int editor_confirm_dialog(const char* message);
-int editor_get_key(void);
 
 // Initialize editor
 void editor_init(void) {
@@ -489,16 +484,150 @@ int editor_confirm_dialog(const char* message) {
     return (c == 'y' || c == 'Y');
 }
 
-// Get key with proper control key handling
-int editor_get_key(void) {
-    int code;
-    int result;
+// Handle keyboard input using enhanced API
+void editor_handle_key(key_event_t *event) {
+    // Handle control key combinations
+    if (event->ctrl) {
+        switch (event->ascii) {
+            case 'n': // Ctrl+N
+            case 'N':
+                editor_new_file();
+                return;
+            case 'o': // Ctrl+O  
+            case 'O':
+                {
+                    char filename[256];
+                    setx(0); sety(STATUS_LINE);
+                    textcolor(COLOR_NORMAL);
+                    printf("Open file: ");
+                    gets(filename);
+                    if (strlen(filename) > 0) {
+                        if (editor.modified) {
+                            if (editor_confirm_dialog("Discard changes?")) {
+                                editor_load_file(filename);
+                            }
+                        } else {
+                            editor_load_file(filename);
+                        }
+                    }
+                }
+                return;
+            case 's': // Ctrl+S
+            case 'S':
+                editor_save_file();
+                return;
+            case 'a': // Ctrl+A
+            case 'A':
+                editor_save_as();
+                return;
+            case 'q': // Ctrl+Q
+            case 'Q':
+                editor_confirm_exit();
+                return;
+            case 'f': // Ctrl+F
+            case 'F':
+                editor_search();
+                return;
+            case 'g': // Ctrl+G
+            case 'G':
+                editor_goto_line();
+                return;
+            case 'k': // Ctrl+K
+            case 'K':
+                editor_delete_line();
+                return;
+            case 'c': // Ctrl+C
+            case 'C':
+                editor_copy_line();
+                return;
+            case 'v': // Ctrl+V
+            case 'V':
+                editor_paste_line();
+                return;
+            case 'l': // Ctrl+L
+            case 'L':
+                editor_toggle_line_numbers();
+                return;
+        }
+    }
     
-    do {
-        result = kb_deq(&code);
-    } while (result == -1);
+    // Handle special keys
+    if (event->is_special) {
+        switch (event->ascii) {
+            case KEY_UP:
+                editor_move_cursor(editor.current_line - 1, editor.current_col);
+                break;
+            case KEY_DOWN:
+                editor_move_cursor(editor.current_line + 1, editor.current_col);
+                break;
+            case KEY_LEFT:
+                if (editor.current_col > 0) {
+                    editor_move_cursor(editor.current_line, editor.current_col - 1);
+                } else if (editor.current_line > 0) {
+                    int prev_line_len = strlen(editor.lines[editor.current_line - 1]);
+                    editor_move_cursor(editor.current_line - 1, prev_line_len);
+                }
+                break;
+            case KEY_RIGHT:
+                {
+                    int line_len = strlen(editor.lines[editor.current_line]);
+                    if (editor.current_col < line_len) {
+                        editor_move_cursor(editor.current_line, editor.current_col + 1);
+                    } else if (editor.current_line + 1 < editor.num_lines) {
+                        editor_move_cursor(editor.current_line + 1, 0);
+                    }
+                }
+                break;
+            case KEY_HOME:
+                editor_move_cursor(editor.current_line, 0);
+                break;
+            case KEY_END:
+                {
+                    int line_len = strlen(editor.lines[editor.current_line]);
+                    editor_move_cursor(editor.current_line, line_len);
+                }
+                break;
+            case KEY_PGUP:
+                editor_move_cursor(editor.current_line - EDITOR_HEIGHT, editor.current_col);
+                break;
+            case KEY_PGDN:
+                editor_move_cursor(editor.current_line + EDITOR_HEIGHT, editor.current_col);
+                break;
+            case KEY_DEL: // Delete
+                editor_delete_char();
+                break;
+            case KEY_INS: // Insert key
+                editor.insert_mode = !editor.insert_mode;
+                editor_show_message(editor.insert_mode ? "Insert mode" : "Overwrite mode", COLOR_SUCCESS);
+                break;
+            case KEY_F1: // F1 for help
+                editor_show_help();
+                break;
+        }
+        return;
+    }
     
-    return code;
+    // Handle regular character input
+    switch (event->ascii) {
+        case 8:  // Backspace key
+            editor_backspace();
+            break;
+        case '\r': // Enter
+        case '\n':
+            editor_insert_line();
+            break;
+        case '\t': // Tab
+            editor_insert_char(' ');
+            editor_insert_char(' ');
+            editor_insert_char(' ');
+            editor_insert_char(' ');
+            break;
+        default:
+            if (event->is_printable) {
+                editor_insert_char(event->ascii);
+            }
+            break;
+    }
 }
 
 // Move cursor to specific position
@@ -811,158 +940,9 @@ void editor_confirm_exit(void) {
     exit(0);
 }
 
-// Handle keyboard input
-void editor_handle_key(int key) {
-    // Check for control key combinations
-    if (key & KBD_META_CTRL) {
-        char base_key = key & 0xFF; // Get base character
-        
-        switch (base_key) {
-            case 'n': // Ctrl+N
-            case 'N':
-                editor_new_file();
-                return;
-            case 'o': // Ctrl+O  
-            case 'O':
-                {
-                    char filename[256];
-                    setx(0); sety(STATUS_LINE);
-                    textcolor(COLOR_NORMAL);
-                    printf("Open file: ");
-                    gets(filename);
-                    if (strlen(filename) > 0) {
-                        if (editor.modified) {
-                            if (editor_confirm_dialog("Discard changes?")) {
-                                editor_load_file(filename);
-                            }
-                        } else {
-                            editor_load_file(filename);
-                        }
-                    }
-                }
-                return;
-            case 's': // Ctrl+S
-            case 'S':
-                editor_save_file();
-                return;
-            case 'a': // Ctrl+A
-            case 'A':
-                editor_save_as();
-                return;
-            case 'q': // Ctrl+Q
-            case 'Q':
-                editor_confirm_exit();
-                return;
-            case 'f': // Ctrl+F
-            case 'F':
-                editor_search();
-                return;
-            case 'g': // Ctrl+G
-            case 'G':
-                editor_goto_line();
-                return;
-            case 'k': // Ctrl+K
-            case 'K':
-                editor_delete_line();
-                return;
-            case 'c': // Ctrl+C
-            case 'C':
-                editor_copy_line();
-                return;
-            case 'v': // Ctrl+V
-            case 'V':
-                editor_paste_line();
-                return;
-            case 'l': // Ctrl+L
-            case 'L':
-                editor_toggle_line_numbers();
-                return;
-        }
-    }
-    
-    switch (key) {
-        // Backspace 
-        case 8:  // Backspace key
-            editor_backspace();
-            break;
-            
-        // Movement keys
-        case KEY_UP:
-            editor_move_cursor(editor.current_line - 1, editor.current_col);
-            break;
-        case KEY_DN:
-            editor_move_cursor(editor.current_line + 1, editor.current_col);
-            break;
-        case KEY_LFT:
-            if (editor.current_col > 0) {
-                editor_move_cursor(editor.current_line, editor.current_col - 1);
-            } else if (editor.current_line > 0) {
-                int prev_line_len = strlen(editor.lines[editor.current_line - 1]);
-                editor_move_cursor(editor.current_line - 1, prev_line_len);
-            }
-            break;
-        case KEY_RT:
-            {
-                int line_len = strlen(editor.lines[editor.current_line]);
-                if (editor.current_col < line_len) {
-                    editor_move_cursor(editor.current_line, editor.current_col + 1);
-                } else if (editor.current_line + 1 < editor.num_lines) {
-                    editor_move_cursor(editor.current_line + 1, 0);
-                }
-            }
-            break;
-        case KEY_HOME:
-            editor_move_cursor(editor.current_line, 0);
-            break;
-        case KEY_END:
-            {
-                int line_len = strlen(editor.lines[editor.current_line]);
-                editor_move_cursor(editor.current_line, line_len);
-            }
-            break;
-        case KEY_PGUP:
-            editor_move_cursor(editor.current_line - EDITOR_HEIGHT, editor.current_col);
-            break;
-        case KEY_PGDN:
-            editor_move_cursor(editor.current_line + EDITOR_HEIGHT, editor.current_col);
-            break;
-            
-        // Edit keys
-        case KEY_DEL: // Delete
-            editor_delete_char();
-            break;
-        case '\r': // Enter
-        case '\n':
-            editor_insert_line();
-            break;
-        case '\t': // Tab
-            editor_insert_char(' ');
-            editor_insert_char(' ');
-            editor_insert_char(' ');
-            editor_insert_char(' ');
-            break;
-        case KEY_INS: // Insert key
-            editor.insert_mode = !editor.insert_mode;
-            editor_show_message(editor.insert_mode ? "Insert mode" : "Overwrite mode", COLOR_SUCCESS);
-            break;
-            
-        // Help
-        case KEY_F1: // F1 for help
-            editor_show_help();
-            break;
-            
-        // Regular printable characters
-        default:
-            if (key >= 32 && key <= 126) {
-                editor_insert_char((char)key);
-            }
-            break;
-    }
-}
-
 // Main function
 int main(int argc, char* argv[]) {
-    int key;
+    key_event_t event;
     
     // Initialize editor
     editor_init();
@@ -975,8 +955,9 @@ int main(int argc, char* argv[]) {
     // Main editor loop
     while (1) {
         editor_refresh_screen();
-        key = editor_get_key();
-        editor_handle_key(key);
+        if (get_key_event(&event) == 0) {
+            editor_handle_key(&event);
+        }
     }
     
     return 0;

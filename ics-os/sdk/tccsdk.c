@@ -1117,6 +1117,78 @@ int getchar(){
    return (int)getch();
 };
 
+/******** Enhanced Keyboard Functions ********/
+
+/* Enhanced getch that returns full key codes including meta bits */
+int getch_enhanced(){
+   int code,c;
+   do{
+      c=kb_deq(&code);
+   }while (c==-1);
+   return code;
+};
+
+/* Fill key event structure with detailed key information */
+int get_key_event(key_event_t *event) {
+   if (event == NULL) return -1;
+   
+   int code = getch_enhanced();
+   event->code = code;
+   
+   /* Check meta bits first */
+   event->ctrl = (code & KBD_META_CTRL) ? 1 : 0;
+   event->alt = (code & KBD_META_ALT) ? 1 : 0;
+   event->shift = (code & KBD_META_SHIFT) ? 1 : 0;
+   
+   /* Get base character */
+   char base_char = code & 0xFF;
+   
+   /* Handle legacy control codes (0-25 = Ctrl+A to Ctrl+Z) */
+   /* ICS-OS uses 0-based control codes: Ctrl+A=0, Ctrl+B=1, ..., Ctrl+Q=16 */
+   if (!event->ctrl && base_char >= 0 && base_char <= 25) {
+      event->ctrl = 1;
+      /* 0-based mapping: 0=Ctrl+A, 1=Ctrl+B, ..., 16=Ctrl+Q */
+      event->ascii = base_char + 'a';
+   } else {
+      event->ascii = base_char;
+   }
+   
+   /* Determine if it's a special key */
+   event->is_special = (base_char >= 0x80 && base_char <= 0x99) ? 1 : 0;
+   
+   /* Determine if it's printable */
+   event->is_printable = (base_char >= 32 && base_char <= 126 && !event->ctrl && !event->alt) ? 1 : 0;
+   
+   return 0;
+}
+
+/* Check if key is a control key combination */
+int is_ctrl_key(int key) {
+   return (key & KBD_META_CTRL) ? 1 : 0;
+}
+
+/* Check if key is a special key (function keys, arrows, etc.) */
+int is_special_key(int key) {
+   char base = key & 0xFF;
+   return (base >= 0x80 && base <= 0x99) ? 1 : 0;
+}
+
+/* Get ASCII character from key, handling control keys */
+char get_ascii_from_key(int key) {
+   if (key & KBD_META_CTRL) {
+      /* For control keys, return the base character */
+      return key & 0xFF;
+   }
+   
+   /* For regular keys, return as-is if printable */
+   char c = key & 0xFF;
+   if (c >= 32 && c <= 126) {
+      return c;
+   }
+   
+   return 0; /* Non-printable */
+}
+
 /******** Files ********/
 FILE *openfile(const char  *filename,int mode){
    return (FILE*)dexsdk_systemcall(4,(int)filename,mode,0,0,0);
