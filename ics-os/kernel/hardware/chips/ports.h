@@ -18,8 +18,8 @@
 #define PORT_LOCKWRITE 2
 #define PORT READWRITE 8
 
-BYTE  *portstatus; //the statuses of the ports are used here
-DWORD *portinfo;   //the driver ID of the driver using this port
+extern BYTE  *portstatus; //the statuses of the ports are used here
+extern DWORD *portinfo;   //the driver ID of the driver using this port
 
 /*---------------------------------Function Prototypes Here----------------------------------*/
 int  ports_close(DWORD devid, DWORD portnum, BYTE attb);

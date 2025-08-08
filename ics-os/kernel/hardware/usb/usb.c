@@ -36,6 +36,7 @@
 #include "../../process/sync.h"
 #include "../../stdlib/dexstdlib.h"
 #include "../../devmgr/dex32_devmgr.h"
+#include <stdarg.h>
 
 // USB Kernel Logging - self-contained logging system
 static char usb_log_buffer[4096];
@@ -436,61 +437,52 @@ int usb_setup_device(usb_controller_t *controller, int port) {
 }
 
 // USB control transfer (simplified implementation)
+extern int uhci_control_transfer(usb_device_t*, unsigned char,unsigned char,unsigned short,unsigned short, void*, unsigned short);
+extern int uhci_bulk_transfer(usb_device_t*, unsigned char, void*, unsigned int);
+
 int usb_control_transfer(usb_device_t *device, BYTE request_type, BYTE request, 
                         WORD value, WORD index, void *data, WORD length) {
     if (!device) return -1;
-    
-    // This is a simplified implementation
-    // In a real driver, this would set up USB transfer descriptors
-    // and handle the actual USB protocol
-    
-    // For educational purposes, we'll simulate successful transfers
-    // for common requests
-    
-    if (request == USB_REQUEST_GET_DESCRIPTOR && 
-        (value >> 8) == USB_DESCRIPTOR_DEVICE && data && length >= 18) {
-        
-        // Simulate a USB mass storage device descriptor
+
+    /* Try real UHCI backend first */
+    int r = -2;
+    if (device->controller && device->controller->type == 0){
+        r = uhci_control_transfer(device, request_type, request, value, index, data, length);
+        if (r == 0) return 0; /* success */
+    }
+
+    /* Fallback simulation path */
+    if (request == USB_REQUEST_GET_DESCRIPTOR && (value >> 8) == USB_DESCRIPTOR_DEVICE && data && length >= 18) {
         usb_device_descriptor_t *desc = (usb_device_descriptor_t *)data;
         desc->length = 18;
         desc->descriptor_type = USB_DESCRIPTOR_DEVICE;
-        desc->usb_version = 0x0200;  // USB 2.0
+        desc->usb_version = 0x0200;
         desc->device_class = USB_CLASS_MASS_STORAGE;
         desc->device_subclass = USB_SUBCLASS_SCSI;
         desc->device_protocol = USB_PROTOCOL_BULK_ONLY;
         desc->max_packet_size = 64;
-        desc->vendor_id = 0x1234;     // Generic vendor
-        desc->product_id = 0x5678;    // Generic product
+        desc->vendor_id = 0x1234;
+        desc->product_id = 0x5678;
         desc->device_version = 0x0100;
         desc->num_configurations = 1;
-        
         return 0;
     }
-    
     return -1;
 }
 
 // USB bulk transfer (enhanced for QEMU virtual USB devices)
 int usb_bulk_transfer(usb_device_t *device, BYTE endpoint, void *data, DWORD length) {
     if (!device || !data || length == 0) return -1;
-    
-    printf("USB: Bulk transfer - endpoint=0x%02X, length=%d\n", endpoint, length);
-    
-    // For QEMU virtual USB devices, we can't do real USB protocol
-    // but we can simulate proper data transfer for testing
-    
-    if (endpoint & 0x80) {  // IN endpoint (device to host)
-        // This would be where we read data from the USB device
-        // For now, we'll return empty data to indicate transfer "completed"
-        // but actual data reading will be handled by higher-level simulation
-        memset(data, 0, length);
-        printf("USB: Simulated IN transfer completed\n");
-        return 0;
-    } else {  // OUT endpoint (host to device)
-        // This would be where we send commands to the USB device
-        printf("USB: Simulated OUT transfer completed\n");
-        return 0;
+    int r = -2;
+    if (device->controller && device->controller->type == 0){
+        r = uhci_bulk_transfer(device, endpoint, data, length);
+        if (r == 0) return 0;
     }
+    /* Fallback simulation */
+    if (endpoint & 0x80){
+        memset(data, 0, length);
+    }
+    return 0;
 }
 
 // Forward declarations for PCI functions

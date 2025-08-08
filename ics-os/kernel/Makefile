@@ -15,7 +15,7 @@ bzImage: all
 all: obj Kernel32.bin
 
 obj: scheduler.o fat.o iso9660.o devfs.o exfat.o iomgr.o devmgr_error.o kernel32.o \
-		startup.o asmlib.o irqwrap.o
+		startup.o asmlib.o irqwrap.o usb.o usb_mass_storage.o usb_uhci.o usb_enum.o
 	#strip --strip-debug *.o
 		
 kernel32.o: kernel32.c build.h
@@ -50,6 +50,18 @@ asmlib.o:
 
 irqwrap.o:
 	$(ASM) $(ASMFLAGS) -o irqwrap.o irqwrap.asm
+
+usb.o:
+	$(CC) $(CFLAGS) -o usb.o hardware/usb/usb.c
+
+usb_mass_storage.o:
+	$(CC) $(CFLAGS) -o usb_mass_storage.o hardware/usb/usb_mass_storage.c
+
+usb_uhci.o:
+	$(CC) $(CFLAGS) -o usb_uhci.o hardware/usb/usb_uhci.c
+
+usb_enum.o:
+	$(CC) $(CFLAGS) -o usb_enum.o hardware/usb/usb_enum.c
 	
 Kernel32.bin:
 	ld -melf_i386 -T lscript.ld -Map mapfile.txt --no-pie

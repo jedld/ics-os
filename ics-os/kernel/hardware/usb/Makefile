@@ -6,7 +6,7 @@ CFLAGS=-fno-stack-protector -std=gnu99 -m32 -w -nostdlib -fno-builtin -ffreestan
 AS=nasm
 ASFLAGS=-f elf32
 
-OBJECTS=usb.o usb_mass_storage.o
+OBJECTS=usb.o usb_mass_storage.o usb_uhci.o usb_enum.o
 
 all: usb_driver.o
 
@@ -18,6 +18,12 @@ usb.o: usb.c usb.h
 
 usb_mass_storage.o: usb_mass_storage.c usb.h
 	$(CC) -fno-stack-protector -std=gnu99 -m32 -w -nostdlib -fno-builtin -ffreestanding -g -fno-pie -fno-pic -I../../.. -I../../../stdlib -c usb_mass_storage.c -o usb_mass_storage.o
+
+usb_uhci.o: usb_uhci.c usb.h
+	$(CC) $(CFLAGS) -I../../.. -I../../../stdlib -c usb_uhci.c -o usb_uhci.o
+
+usb_enum.o: usb_enum.c usb.h
+	$(CC) $(CFLAGS) -I../../.. -I../../../stdlib -c usb_enum.c -o usb_enum.o
 
 clean:
 	rm -f *.o
