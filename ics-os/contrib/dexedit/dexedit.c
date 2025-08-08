@@ -19,7 +19,7 @@
 
 #include "../../sdk/dexsdk.h"
 
-// Key definitions (copied from keyboard.h to avoid include issues)
+// Key definitions (copied from dexsdk.h to match enhanced keyboard API)
 #define	KEY_F1		0x80
 #define	KEY_F2		(KEY_F1 + 1)
 #define	KEY_F3		(KEY_F2 + 1)
@@ -34,14 +34,14 @@
 #define	KEY_F12		(KEY_F11 + 1)
 #define	KEY_INS		0x90
 #define	KEY_DEL		(KEY_INS + 1)
-#define	KEY_HOME	(KEY_DEL + 1)
-#define	KEY_END		(KEY_HOME + 1)
-#define	KEY_PGUP	(KEY_END + 1)
-#define	KEY_PGDN	(KEY_PGUP + 1)
-#define	KEY_LFT		(KEY_PGDN + 1)
-#define	KEY_UP		(KEY_LFT + 1)
-#define	KEY_DN		(KEY_UP + 1)
-#define	KEY_RT		(KEY_DN + 1)
+#define	KEY_HOME	0x92
+#define	KEY_END		0x93
+#define	KEY_PGUP	0x94
+#define	KEY_PGDN	0x95
+#define	KEY_LEFT	0x96
+#define	KEY_UP		0x97
+#define	KEY_DOWN	0x98
+#define	KEY_RIGHT	0x99
 
 // Additional function declarations
 int atoi(const char *str);
@@ -352,6 +352,7 @@ void editor_refresh_screen(void) {
     if (display_row >= 0 && display_row < EDITOR_HEIGHT && 
         display_col >= line_num_width && display_col < SCREEN_WIDTH) {
         setx(display_col); sety(display_row);
+        update_cursor(display_row, display_col);  // y=row, x=col
     }
 }
 
@@ -609,12 +610,16 @@ void editor_handle_key(key_event_t *event) {
     
     // Handle regular character input
     switch (event->ascii) {
-        case 8:  // Backspace key
+        case 8:   // Backspace key (ASCII 8)
+        case 127: // Delete key (ASCII 127) - treat as backspace
+        case 145: // Backspace key (ICS-OS special code)
             editor_backspace();
+            editor.modified = 1;  // Ensure modified flag is set
             break;
         case '\r': // Enter
         case '\n':
             editor_insert_line();
+            editor.modified = 1;  // Ensure modified flag is set
             break;
         case '\t': // Tab
             editor_insert_char(' ');
@@ -623,7 +628,12 @@ void editor_handle_key(key_event_t *event) {
             editor_insert_char(' ');
             break;
         default:
+            // Handle printable characters
             if (event->is_printable) {
+                editor_insert_char(event->ascii);
+            }
+            // In fallback mode, also handle characters that might be misclassified
+            else if (!event->is_special && event->ascii >= 32 && event->ascii <= 126) {
                 editor_insert_char(event->ascii);
             }
             break;
@@ -956,6 +966,20 @@ int main(int argc, char* argv[]) {
     while (1) {
         editor_refresh_screen();
         if (get_key_event(&event) == 0) {
+            editor_handle_key(&event);
+        } else {
+            // Fallback to simple getch if enhanced API fails
+            char c = getch();
+            // Convert to simple key event
+            event.code = c;
+            event.ascii = c;
+            event.ctrl = 0;
+            event.alt = 0;
+            event.shift = 0;
+            // Properly detect special keys in fallback mode
+            event.is_special = (c >= 0x80 && c <= 0x99) ? 1 : 0;
+            // More accurate printable detection - exclude control characters
+            event.is_printable = (c >= 32 && c <= 126) ? 1 : 0;
             editor_handle_key(&event);
         }
     }

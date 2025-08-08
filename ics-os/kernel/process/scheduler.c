@@ -27,6 +27,9 @@ Description: This module is the default round-robin scheduler that is
 #include "scheduler.h"
 #include "../devmgr/dex32_devmgr.h"
 
+//Idle PCB declared in process.c
+extern PCB386 idlePCB;
+
 PCB386 *sched_phead;
 int ps_schedid;
 devmgr_scheduler_extension ps_scheduler;
@@ -34,18 +37,27 @@ devmgr_scheduler_extension ps_scheduler;
 
 //Currently Implements the Round-Robin Algorithm
 PCB386 *scheduler(PCB386 *lastprocess){
+   PCB386 *start = lastprocess;
    PCB386 *ptr = lastprocess->next;
-  
-   //if this process is blocked or is waiting, we get another process.
-   //This assumes that at least one process is not blocked or waiting.
-   while ( (ptr->status & PS_ATTB_BLOCKED) || ptr->waiting ){
-      ptr=ptr->next;
-      if (ptr->waiting) 
-         ptr->waiting--;
-   };    
+   PCB386 *candidate = 0;
 
-   //we should have picked a process at this point. 
-   return ptr;
+   //Single pass search for first runnable (non-blocked, not waiting) non-idle task
+   while (ptr != start){
+      if (!(ptr->status & PS_ATTB_BLOCKED) && !ptr->waiting && !(ptr->status & PS_ATTB_IDLE)){
+         candidate = ptr;
+         break;
+      }
+      // decrement sleep timers
+      if (ptr->waiting) ptr->waiting--;
+      ptr = ptr->next;
+   }
+   // If none found, try lastprocess itself (if runnable and not idle)
+   if (!candidate && !(start->status & PS_ATTB_BLOCKED) && !start->waiting && !(start->status & PS_ATTB_IDLE))
+      candidate = start;
+
+   if (!candidate)
+      return &idlePCB; // fallback
+   return candidate;
 };
 
 

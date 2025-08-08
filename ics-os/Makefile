@@ -36,10 +36,17 @@ prep_image: vmdex
 
 floppy: prep_image
 	cp grub.img ics-os-floppy.img                #copy an image with grub
+	-sudo umount mnt 2>/dev/null || true         #unmount if already mounted
 	sudo rm -fr mnt
 	sudo mkdir mnt
 	sudo mount ics-os-floppy.img mnt -tmsdos -oloop
-	sudo cp -r tmp/* mnt/
+	sudo rm -f mnt/apps/*.exe mnt/*.bat mnt/*.hlp mnt/*.txt mnt/license mnt/vmdex 2>/dev/null || true
+	sudo rm -rf mnt/tcc1 mnt/lib1 2>/dev/null || true
+	sudo mkdir -p mnt/apps mnt/tcc1 mnt/lib1
+	sudo cp tmp/apps/* mnt/apps/ 2>/dev/null || true
+	sudo cp tmp/tcc1/* mnt/tcc1/ 2>/dev/null || true  
+	sudo cp tmp/lib1/* mnt/lib1/ 2>/dev/null || true
+	sudo cp tmp/* mnt/ 2>/dev/null || true
 	sudo umount mnt
 	sudo chmod 666 ics-os-floppy.img
 	rm -fr tmp/

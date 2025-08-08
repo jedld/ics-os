@@ -91,6 +91,7 @@ PCB386   kernelPCB;                       //actual PCB for kernel
 PCB386   schedpPCB;                       //actual process structure for scheduler
 
 PCB386   sPCB;                            //actual PCB for kernel
+PCB386   idlePCB;                         //idle process PCB
 PCB386   pfPCB;                           //page fault PCB
 PCB386   pfPCB_copy;                      //copy of page fault PCB
 PCB386   keyPCB;                          //keyboard PCB
@@ -1230,8 +1231,11 @@ void copyprocessmemory(process_mem *memptr, process_mem **destmemptr){
 
 //does nothing
 void halt(){
-    while (1)
-      ;
+      while (1){
+         startints();
+         hlt();      // enter low-power state until next interrupt
+         stopints();
+      }
 };
 
 
@@ -1281,8 +1285,8 @@ void taskswitcher(){
    do{
       stopints(); //disable interrupts first
 
-      //fetch a ready process from the ready queue
-      do{
+   //fetch a ready process from the ready queue
+   do{
          if (!sigwait){
             //if the wait register is not set, switch to
             //another process, the wait is used to prevent
@@ -1300,6 +1304,11 @@ void taskswitcher(){
             //get the ready process returned by the scheduler extension
             readyprocess = (PCB386*)bridges_link((devmgr_generic*)cursched, &cursched->scheduler,
                                                    current_process,0,0,0,0,0);
+
+            //If scheduler returned NULL or a blocked process (should not) fallback to idle
+            if (!readyprocess || (readyprocess->status & PS_ATTB_BLOCKED)){
+               readyprocess = &idlePCB;
+            }
          };
          //readyprocess=bridges_ps_scheduler(current_process);
             
@@ -1307,7 +1316,14 @@ void taskswitcher(){
          current_process = readyprocess;
 
          //give control to readyprocess, the context switch
-         ps_switchto(readyprocess);
+         if (readyprocess == &idlePCB){
+            //Enable interrupts and halt CPU until next interrupt (energy saving / reduced busy wait)
+            startints();
+            hlt();
+            stopints();
+         } else {
+            ps_switchto(readyprocess);
+         }
 
          /*Make sure the taskwitcher was really called by the timer, since
             another way of calling the taskswithcer is through taskswitch().
@@ -1322,7 +1338,8 @@ void taskswitcher(){
          }
             
          //record the number of milleseconds the process used
-         readyprocess->totalcputime++;
+         if (readyprocess != &idlePCB)
+            readyprocess->totalcputime++;            
             
          //A process wants to get immediate control, usually set by
          //device drivers that are hooked to IRQs or high priority process
@@ -1623,6 +1640,32 @@ void process_init(){
    loadtsr();  //terminate and stay resident the scheduler 
 
    //--------------------------------------------------------------------------------------
+   //Initialize the idle process (runs when no other process is runnable). Lowest priority.
+   memset(&idlePCB,0,sizeof(PCB386));
+   idlePCB.processid = 5; // next reserved
+   strcpy(idlePCB.name,"idle");
+   idlePCB.accesslevel = ACCESS_SYS;
+   idlePCB.status = PS_ATTB_LOCKED | PS_ATTB_UNLOADABLE | PS_ATTB_IDLE;
+   idlePCB.knext=knext;
+   idlePCB.pagedirloc=pagedir1;
+   idlePCB.outdev= consoleDDL;
+   memset(&idlePCB.regs,0,sizeof(saveregs));
+   //Simple idle loop: enable interrupts and halt repeatedly.
+   extern void dex_idle_entry(); // forward (we'll define later if needed)
+   idlePCB.regs.EIP=(DWORD)halt; // reuse halt() infinite loop (modified to use hlt in future)
+   idlePCB.regs.ESP= PAGEFAULT_STACK_LOC;
+   idlePCB.regs.ES=SYS_DATA_SEL;
+   idlePCB.regs.SS=SYS_STACK_SEL;
+   idlePCB.regs.CS=SYS_CODE_SEL;
+   idlePCB.regs.DS=SYS_DATA_SEL;
+   idlePCB.regs.FS=SYS_DATA_SEL;
+   idlePCB.regs.CR3=pagedir1;
+   idlePCB.regs.GS=SYS_DATA_SEL;
+   idlePCB.regs.EFLAGS=0x200; // IF enabled
+   idlePCB.regs.SS0=SYS_STACK_SEL;
+   idlePCB.regs.ESP0 = PAGEFAULT_STACK_LOC;
+   // Do not add idle to main RR queue; selected explicitly
+
    //directly manipulate the keyboard handler PCB. uses dot(.)
    keyPCB.next=0;
    keyPCB.processid=2;

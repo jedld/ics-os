@@ -66,6 +66,8 @@
 #define PS_ATTB_UNLOADABLE  2
 #define PS_ATTB_BLOCKED     4
 #define PS_ATTB_THREAD      8
+//Idle process flag (internal use)
+#define PS_ATTB_IDLE        0x10
 
 //defines the PIDs of the SCHEDULER and the scheduler
 #define SYSPID_KERNEL   0
@@ -299,7 +301,8 @@ extern PCB386  kernelPCB,
 extern PCB386  sPCB, 
                pfPCB, 
                pfPCB_copy, 
-               keyPCB;
+               keyPCB,
+               idlePCB; //idle process PCB
 
 extern FPUregs ps_fpustate, ps_kernelfpustate;
 

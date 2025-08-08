@@ -32,6 +32,85 @@
 extern void usb_list_controllers(void);
 extern void usb_list_devices(void);
 
+// Import key definitions we need  
+#define KEY_UP 0x97    // 0x90 + 7 (INS + 7 steps)
+#define KEY_DN 0x98    // 0x90 + 8 (INS + 8 steps)
+
+// Forward declarations for keyboard functions
+extern char getch();
+extern unsigned int getchw();
+
+// Command history system
+#define MAX_HISTORY_SIZE 50
+#define MAX_COMMAND_LENGTH 256
+
+typedef struct {
+    char commands[MAX_HISTORY_SIZE][MAX_COMMAND_LENGTH];
+    int count;
+    int current_index;
+    int history_index;
+} command_history_t;
+
+static command_history_t cmd_history = {0};
+
+// Command history functions
+void console_history_add(const char *command);
+const char* console_history_get_prev(void);
+const char* console_history_get_next(void);
+void console_history_reset_index(void);
+
+// Command history implementation
+void console_history_add(const char *command) {
+    // Don't add empty commands or duplicates of the last command
+    if (strlen(command) == 0) return;
+    if (cmd_history.count > 0 && 
+        strcmp(cmd_history.commands[(cmd_history.current_index - 1 + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE], command) == 0) {
+        return;
+    }
+    
+    // Add command to history
+    strncpy(cmd_history.commands[cmd_history.current_index], command, MAX_COMMAND_LENGTH - 1);
+    cmd_history.commands[cmd_history.current_index][MAX_COMMAND_LENGTH - 1] = '\0';
+    
+    cmd_history.current_index = (cmd_history.current_index + 1) % MAX_HISTORY_SIZE;
+    if (cmd_history.count < MAX_HISTORY_SIZE) {
+        cmd_history.count++;
+    }
+    
+    // Reset history navigation index
+    console_history_reset_index();
+}
+
+const char* console_history_get_prev(void) {
+    if (cmd_history.count == 0) return NULL;
+    
+    if (cmd_history.history_index == -1) {
+        cmd_history.history_index = (cmd_history.current_index - 1 + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
+    } else {
+        cmd_history.history_index = (cmd_history.history_index - 1 + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
+    }
+    
+    return cmd_history.commands[cmd_history.history_index];
+}
+
+const char* console_history_get_next(void) {
+    if (cmd_history.count == 0 || cmd_history.history_index == -1) return NULL;
+    
+    cmd_history.history_index = (cmd_history.history_index + 1) % MAX_HISTORY_SIZE;
+    
+    // If we've reached the current position, reset to show empty
+    if (cmd_history.history_index == cmd_history.current_index) {
+        cmd_history.history_index = -1;
+        return "";  // Return empty string for current/new command
+    }
+    
+    return cmd_history.commands[cmd_history.history_index];
+}
+
+void console_history_reset_index(void) {
+    cmd_history.history_index = -1;
+}
+
 
 void runner(){
    int i=0;
@@ -43,47 +122,49 @@ void runner(){
 }
 
   
-/*A console mode get string function terminates
-upon receving \r */
+/*Enhanced console mode get string function with command history support */
 void getstring(char *buf, DEX32_DDL_INFO *dev){
-   unsigned int i=0;
-   char c;
-   do{
-      c=getch();
-      if (c=='\r' || c=='\n' || c==0xa) 
-         break;
-
-      if (c=='\b' || (unsigned char)c == 145){
-         if(i>0){
-            i--;
-            if (Dex32GetX(dev)==0){
-               Dex32SetX(dev,79);
-               if (Dex32GetY(dev)>0) 
-                  Dex32SetY(dev,Dex32GetY(dev)-1);
-            }else{
-               Dex32SetX(dev,Dex32GetX(dev)-1);
-            }     
-            Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),' ',Dex32GetAttb(dev));
-         };
-      }else{
-         if (i<256){  //maximum command line is only 255 characters
-            Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),buf[i]=c,Dex32GetAttb(dev));
-            i++;
-            Dex32SetX(dev,Dex32GetX(dev)+1);     
-            if (Dex32GetX(dev)>79){
-               Dex32SetX(dev,0);
-               Dex32NextLn(dev);
-            };
-         };
-      };
-
-      Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),' ',Dex32GetAttb(dev));
-      update_cursor(Dex32GetY(dev),Dex32GetX(dev));
-   }while (c!='\r');
+    unsigned int i=0;
+    char c;
     
-   Dex32SetX(dev,0);
-   Dex32NextLn(dev);
-   buf[i]=0;
+    do{
+        c=getch();
+        if (c=='\r' || c=='\n' || c==0xa) 
+            break;
+
+        if (c=='\b' || (unsigned char)c == 145){
+            if(i>0){
+                i--;
+                if (Dex32GetX(dev)==0){
+                    Dex32SetX(dev,79);
+                    if (Dex32GetY(dev)>0) 
+                        Dex32SetY(dev,Dex32GetY(dev)-1);
+                }else{
+                    Dex32SetX(dev,Dex32GetX(dev)-1);
+                }     
+                Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),' ',Dex32GetAttb(dev));
+                console_history_reset_index(); // Reset history when user starts typing
+            };
+        }else{
+            if (i<256){  //maximum command line is only 255 characters
+                Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),buf[i]=c,Dex32GetAttb(dev));
+                i++;
+                Dex32SetX(dev,Dex32GetX(dev)+1);     
+                if (Dex32GetX(dev)>79){
+                    Dex32SetX(dev,0);
+                    Dex32NextLn(dev);
+                };
+                console_history_reset_index(); // Reset history when user starts typing
+            };
+        };
+
+        Dex32PutChar(dev,Dex32GetX(dev),Dex32GetY(dev),' ',Dex32GetAttb(dev));
+        update_cursor(Dex32GetY(dev),Dex32GetX(dev));
+    }while (c!='\r');
+    
+    Dex32SetX(dev,0);
+    Dex32NextLn(dev);
+    buf[i]=0;
 };
 
 /*Show information about memory usage. This function is also useful
@@ -704,6 +785,29 @@ int console_execute(const char *str){
             printf("Clipboard contains %d characters\n", clipboard_get_length());
          }
       }
+   }else
+   if (strcmp(u,"history") == 0){     //-- Display command history
+      printf("Command History:\n");
+      if (cmd_history.count == 0) {
+         printf("  (empty)\n");
+      } else {
+         int displayed = 0;
+         int i; /* Loop variable */
+         // Display commands in chronological order
+         for (i = 0; i < cmd_history.count; i++) {
+            int index = (cmd_history.current_index - cmd_history.count + i + MAX_HISTORY_SIZE) % MAX_HISTORY_SIZE;
+            printf("  %2d: %s\n", i + 1, cmd_history.commands[index]);
+            displayed++;
+            
+            // Pause every 20 commands to prevent screen overflow
+            if (displayed % 20 == 0 && displayed < cmd_history.count) {
+               printf("Press any key to continue or 'q' to quit...");
+               char c = getch();
+               printf("\n");
+               if (c == 'q' || c == 'Q') break;
+            }
+         }
+      }
    }else            
    if (strcmp(u,"exit") == 0){         //-- Exits a console session.
       fg_exit();
@@ -1046,8 +1150,13 @@ void console_main(){
          sendtokeyb(last,&_q);
          sendtokeyb("\r",&_q);
       }
-      else   
+      else {
+         // Add command to history (skip empty commands and history commands)
+         if (strlen(s) > 0 && strcmp(s, "!") != 0 && strcmp(s, "!!") != 0) {
+            console_history_add(s);
+         }
          console_execute(s);
+      }
    } while (1);
 };
 

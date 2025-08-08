@@ -36,6 +36,10 @@
 int console_first = 0;
 void console_main();
 void getstring(char *buf,DEX32_DDL_INFO *dev);
+void console_history_add(const char *command);
+const char* console_history_get_prev(void);
+const char* console_history_get_next(void);
+void console_history_reset_index(void);
 void meminfo();
 int delfile(char *fname);
 int user_fork();

@@ -1,10 +1,10 @@
 ICS-OS Commands
 ---------------
-654:         if (strcmp(u, "controllers") == 0) {
-656:         } else if (strcmp(u, "devices") == 0) {
-679:         if (strcmp(u, "clear") == 0) {
-681:         } else if (strcmp(u, "status") == 0) {
-687:         } else if (strcmp(u, "set") == 0) {
+735:         if (strcmp(u, "controllers") == 0) {
+737:         } else if (strcmp(u, "devices") == 0) {
+760:         if (strcmp(u, "clear") == 0) {
+762:         } else if (strcmp(u, "status") == 0) {
+768:         } else if (strcmp(u, "set") == 0) {
 cc- Builds a C program (invokes tcc.exe). Args: <name.exe> <name.c>
 cd- Changes working directory. Args: <directory>
 clipboard- Clipboard operations. Args: [clear|status|set <text>]
@@ -21,6 +21,7 @@ fgman-  Foreground manager
 files- Shows list of currently open files.
 find- Finds a file.
 help- Displays this help screen.
+history- Display command history
 kill- Kills a thread/process. Performs cleanup.  Args: <thread name>
 libinfo- Shows library information.
 loadmod- Loads a shared library (.dll or .so). Args: <module filename> 
