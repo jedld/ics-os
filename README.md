@@ -26,33 +26,29 @@ ICS-OS is a 32-bit operating system and requires a 32-bit build environment. You
 [docker](https://docs.docker.com/engine/install/ubuntu/) and [docker-compose](https://docs.docker.com/compose/install/) 
 to build the ICS-OS kernel and user applications.
 
-Run the following command to enter the build environment:
+We have provided a helper script to simplify the build process using Docker.
 
-`$docker-compose run ics-os-build`
-
-or if you are using the docker-compose plugin:
-
-`$docker compose run ics-os-build`
-
-You will be dropped to a shell where you can perform the build. The ics-os folder is mapped inside the container. Thus, 
-you can perform the edits outside the container(in another terminal) and the changes will be reflected inside the build environment.
-
+To build the floppy image:
 ```
-#cd /home/ics-os
-#make clean
-#make
-#exit
+$ ./build.sh
 ```
+
+To clean the build:
+```
+$ ./build.sh clean
+```
+
+Alternatively, you can run the docker commands directly (see `docker-compose.yml` for details), but using `build.sh` is recommended.
+
 Make the floppy image then boot.
 
 ```
-$sudo make floppy
-$make boot-floppy
+$ ./build.sh
 ```
 
-Alternatively, you can boot the floppy image directly using qemu.
+You can boot the floppy image directly using qemu.
 ```
-$qemu-system-i386 -fda ics-os-floppy.img
+$ qemu-system-i386 -fda ics-os/ics-os-floppy.img
 ```
 
 See [Lab 01](https://github.com/srg-ics-uplb/ics-os/blob/master/labs/lab01/ICSOS_Lab01.pdf) for a more complete discussion of how 

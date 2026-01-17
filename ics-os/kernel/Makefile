@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-fno-stack-protector -fgnu89-inline -m32 -w -nostdlib -fno-builtin -ffreestanding -c -g 
+CFLAGS=-fno-stack-protector -fgnu89-inline -m32 -w -nostdlib -fno-builtin -ffreestanding -c -g -gdwarf-2 
 ASM=nasm
 ASMFLAGS=-f elf32
 

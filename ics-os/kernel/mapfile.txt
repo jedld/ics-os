@@ -1160,23 +1160,32 @@ LOAD irqwrap.o
 LOAD devmgr_error.o
 OUTPUT(Kernel32.bin elf32-i386)
 
-.debug_info     0x0000000000000000    0x18d48
- .debug_info    0x0000000000000000    0x11ff5 kernel32.o
- .debug_info    0x0000000000011ff5      0xd6d scheduler.o
- .debug_info    0x0000000000012d62      0x8f1 iomgr.o
- .debug_info    0x0000000000013653     0x2fa8 fat.o
- .debug_info    0x00000000000165fb      0xe10 iso9660.o
- .debug_info    0x000000000001740b      0xc4b devfs.o
- .debug_info    0x0000000000018056      0xcf2 devmgr_error.o
+.debug_info     0x0000000000000000    0x1a7b0
+ .debug_info    0x0000000000000000    0x132ab kernel32.o
+ .debug_info    0x00000000000132ab      0xee4 scheduler.o
+ .debug_info    0x000000000001418f      0x90a iomgr.o
+ .debug_info    0x0000000000014a99     0x325e fat.o
+ .debug_info    0x0000000000017cf7      0xf53 iso9660.o
+ .debug_info    0x0000000000018c4a      0xd1a devfs.o
+ .debug_info    0x0000000000019964      0xe4c devmgr_error.o
 
-.debug_abbrev   0x0000000000000000     0x1446
- .debug_abbrev  0x0000000000000000      0x6d6 kernel32.o
- .debug_abbrev  0x00000000000006d6      0x1da scheduler.o
- .debug_abbrev  0x00000000000008b0      0x23e iomgr.o
- .debug_abbrev  0x0000000000000aee      0x2e7 fat.o
- .debug_abbrev  0x0000000000000dd5      0x260 iso9660.o
- .debug_abbrev  0x0000000000001035      0x295 devfs.o
- .debug_abbrev  0x00000000000012ca      0x17c devmgr_error.o
+.debug_abbrev   0x0000000000000000     0x13bb
+ .debug_abbrev  0x0000000000000000      0x6b8 kernel32.o
+ .debug_abbrev  0x00000000000006b8      0x1cb scheduler.o
+ .debug_abbrev  0x0000000000000883      0x22f iomgr.o
+ .debug_abbrev  0x0000000000000ab2      0x2d8 fat.o
+ .debug_abbrev  0x0000000000000d8a      0x251 iso9660.o
+ .debug_abbrev  0x0000000000000fdb      0x286 devfs.o
+ .debug_abbrev  0x0000000000001261      0x15a devmgr_error.o
+
+.debug_loc      0x0000000000000000     0x9c4d
+ .debug_loc     0x0000000000000000     0x89c1 kernel32.o
+ .debug_loc     0x00000000000089c1      0x1f8 scheduler.o
+ .debug_loc     0x0000000000008bb9      0x17c iomgr.o
+ .debug_loc     0x0000000000008d35      0xaf0 fat.o
+ .debug_loc     0x0000000000009825      0x268 iso9660.o
+ .debug_loc     0x0000000000009a8d      0x188 devfs.o
+ .debug_loc     0x0000000000009c15       0x38 devmgr_error.o
 
 .debug_aranges  0x0000000000000000       0xe0
  .debug_aranges
@@ -1200,30 +1209,30 @@ OUTPUT(Kernel32.bin elf32-i386)
  .debug_ranges  0x00000000000000f8       0x30 iso9660.o
  .debug_ranges  0x0000000000000128       0x38 devfs.o
 
-.debug_line     0x0000000000000000     0x6882
+.debug_line     0x0000000000000000     0x684c
  .debug_line    0x0000000000000000     0x556c kernel32.o
  .debug_line    0x000000000000556c      0x160 scheduler.o
- .debug_line    0x00000000000056cc      0x1e9 iomgr.o
- .debug_line    0x00000000000058b5      0x926 fat.o
- .debug_line    0x00000000000061db      0x23c iso9660.o
- .debug_line    0x0000000000006417      0x2b3 devfs.o
- .debug_line    0x00000000000066ca      0x1b8 devmgr_error.o
+ .debug_line    0x00000000000056cc      0x1b3 iomgr.o
+ .debug_line    0x000000000000587f      0x926 fat.o
+ .debug_line    0x00000000000061a5      0x23c iso9660.o
+ .debug_line    0x00000000000063e1      0x2b3 devfs.o
+ .debug_line    0x0000000000006694      0x1b8 devmgr_error.o
 
-.debug_str      0x0000000000000000     0x6125
- .debug_str     0x0000000000000000     0x5341 kernel32.o
-                                       0x5e7e (size before relaxing)
- .debug_str     0x0000000000005341       0xec scheduler.o
-                                        0x720 (size before relaxing)
- .debug_str     0x000000000000542d      0x13c iomgr.o
-                                        0x49f (size before relaxing)
- .debug_str     0x0000000000005569      0x6ae fat.o
-                                        0xc24 (size before relaxing)
- .debug_str     0x0000000000005c17      0x3f8 iso9660.o
-                                        0x80f (size before relaxing)
- .debug_str     0x000000000000600f       0xc3 devfs.o
-                                        0x528 (size before relaxing)
- .debug_str     0x00000000000060d2       0x53 devmgr_error.o
-                                        0x6c9 (size before relaxing)
+.debug_str      0x0000000000000000     0x612f
+ .debug_str     0x0000000000000000     0x534b kernel32.o
+                                       0x5e88 (size before relaxing)
+ .debug_str     0x000000000000534b       0xec scheduler.o
+                                        0x71d (size before relaxing)
+ .debug_str     0x0000000000005437      0x13c iomgr.o
+                                        0x46d (size before relaxing)
+ .debug_str     0x0000000000005573      0x6ae fat.o
+                                        0xc21 (size before relaxing)
+ .debug_str     0x0000000000005c21      0x3f8 iso9660.o
+                                        0x80c (size before relaxing)
+ .debug_str     0x0000000000006019       0xc3 devfs.o
+                                        0x525 (size before relaxing)
+ .debug_str     0x00000000000060dc       0x53 devmgr_error.o
+                                        0x6c6 (size before relaxing)
 
 .comment        0x0000000000000000       0x35
  .comment       0x0000000000000000       0x35 kernel32.o

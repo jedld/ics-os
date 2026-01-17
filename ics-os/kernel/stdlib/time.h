@@ -19,7 +19,7 @@ aux_time2;   //since the OS has the timer set to interrupt 200 times a second
                //if it reaches 200
 
 typedef int clock_t; //for UNIX compatibility
-dex32_datetime time_systime;
+extern dex32_datetime time_systime;
 
 char *datetostr(dex32_datetime *d,char *str);
 void getdatetime(dex32_datetime*); //gets the date nd time

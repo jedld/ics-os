@@ -1,0 +1,16 @@
+# Build Artifacts
+*.o
+*.bin
+*.sym
+*.img
+vmdex
+ics-os-livecd.iso
+
+# Temporary Directories
+tmp/
+mnt/
+
+# Editor/OS files
+.DS_Store
+*~
+*.swp

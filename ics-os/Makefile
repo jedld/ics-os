@@ -36,12 +36,7 @@ prep_image: vmdex
 
 floppy: prep_image
 	cp grub.img ics-os-floppy.img                #copy an image with grub
-	sudo rm -fr mnt
-	sudo mkdir mnt
-	sudo mount ics-os-floppy.img mnt -tmsdos -oloop
-	sudo cp -r tmp/* mnt/
-	sudo umount mnt
-	sudo chmod 666 ics-os-floppy.img
+	mcopy -i ics-os-floppy.img -s tmp/* ::/
 	rm -fr tmp/
 
 livecd: prep_image
