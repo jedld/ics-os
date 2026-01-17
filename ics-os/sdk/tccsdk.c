@@ -33,6 +33,8 @@
 int errno;
 
 FILE *stdout = (FILE*)1, *stdin =(FILE*)2, *stderr=(FILE*)1;
+static int ungetc_char = -1;
+static FILE *ungetc_stream = 0;
 
 /*executes a dex32 systemcall (int 0x30) , implementation almost similar to linux*/
 unsigned int dexsdk_systemcall(int function_number,int p1,int p2,
@@ -463,7 +465,37 @@ EMIT2:				if((flags & PR_LJ) == 0)
 }
 
 int toupper(int c){
-  return c+('A'-'a');
+	if (c >= 'a' && c <= 'z') return c - ('a' - 'A');
+	return c;
+}
+
+int tolower(int c){
+	if (c >= 'A' && c <= 'Z') return c + ('a' - 'A');
+	return c;
+}
+
+int isalpha(int c){
+	return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+int isdigit(int c){
+	return (c >= '0' && c <= '9');
+}
+
+int isalnum(int c){
+	return isalpha(c) || isdigit(c);
+}
+
+int isspace(int c){
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v';
+}
+
+int isupper(int c){
+	return (c >= 'A' && c <= 'Z');
+}
+
+int islower(int c){
+	return (c >= 'a' && c <= 'z');
 }
 
 int printf(const char *fmt, ...)
@@ -1153,6 +1185,12 @@ FILE *fopen(const char *filename,const char *s){
 };
 
 int fgetc (FILE *stream){
+	if (ungetc_stream == stream && ungetc_char != -1){
+		int c = ungetc_char;
+		ungetc_char = -1;
+		ungetc_stream = 0;
+		return c;
+	}
    char ch;
    if (stream==stdin) 
       return getchar();
@@ -1161,6 +1199,17 @@ int fgetc (FILE *stream){
    fread(&ch,1,1,stream);
    return ch;
 };
+
+int ungetc(int c, FILE *stream){
+	ungetc_char = c;
+	ungetc_stream = stream;
+	return c;
+}
+
+int ferror(FILE *stream){
+	(void)stream;
+	return 0;
+}
 
 char *gets(char *buf){
    unsigned int i=0;
@@ -1228,12 +1277,25 @@ char fputc(char c,FILE *f){
    return c;
 };
 
-fputs(const char *s, FILE *stream){
-  const char *p=s;
-  while (*p != '\0'){
-    fputc(*p,stream);
-    *p++;
-  }
+int putchar(int c){
+	return fputc((char)c, stdout);
+}
+
+int puts(const char *s){
+	int count = fputs(s, stdout);
+	fputc('\n', stdout);
+	return count + 1;
+}
+
+int fputs(const char *s, FILE *stream){
+	int count = 0;
+	const char *p=s;
+	while (*p != '\0'){
+		fputc(*p,stream);
+		p++;
+		count++;
+	}
+	return count;
 }
 
  
@@ -1243,6 +1305,29 @@ int fclose(FILE *stream){
    closefile(stream);
    return 0;
 };
+
+static int fprintf_help(unsigned c, void **ptr, FILE *f)
+{
+	(void)ptr;
+	fputc((char)c, f);
+	return 0;
+}
+
+int vfprintf(FILE *stream, const char *fmt, va_list args)
+{
+	return do_printf(fmt, args, fprintf_help, stream, NULL);
+}
+
+int fprintf(FILE *stream, const char *fmt, ...)
+{
+	va_list args;
+	int ret_val;
+
+	va_start(args, fmt);
+	ret_val = do_printf(fmt, args, fprintf_help, stream, NULL);
+	va_end(args);
+	return ret_val;
+}
 
 int fflush (FILE *stream){
    if (stream == stdout || stream==stderr || stream == stdin) 
@@ -1266,6 +1351,12 @@ int remove(char *filename){
    return dexsdk_systemcall(0x49,(int)filename,0,0,0,0);
 };
 
+char *strerror(int errnum)
+{
+	(void)errnum;
+	return "error";
+}
+
 int mkdir (const char *filename, mode_t mode){
     return dexsdk_systemcall(0x4A,(int)filename,0,0,0,0);
 };
@@ -1275,6 +1366,42 @@ int copyfile(const char *src, const char *dest){
 };
 
 //------------------------------------------
+double atof(const char *str){
+	double sign = 1.0;
+	double val = 0.0;
+	double frac = 0.0;
+	double scale = 1.0;
+
+	if (!str)
+		return 0.0;
+
+	while (*str && isspace((int)*str))
+		str++;
+
+	if (*str == '-') {
+		sign = -1.0;
+		str++;
+	} else if (*str == '+') {
+		str++;
+	}
+
+	while (*str && isdigit((int)*str)) {
+		val = (val * 10.0) + (double)(*str - '0');
+		str++;
+	}
+
+	if (*str == '.') {
+		str++;
+		while (*str && isdigit((int)*str)) {
+			frac = (frac * 10.0) + (double)(*str - '0');
+			scale *= 10.0;
+			str++;
+		}
+	}
+
+	return sign * (val + (frac / scale));
+}
+
 int atoi(const char *str){
     int i = strlen(str) - 1 , i2 = 1;
     int num = 0;

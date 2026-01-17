@@ -14,6 +14,65 @@ Test the floppy image in qemu.
 ```
 $qemu-system-i386 -fda ics-os-floppy.img
 ```
+
+## USB Boot (BIOS)
+
+You can build a bootable USB image and test it on real hardware or in QEMU.
+
+### Build a USB image
+
+From the ics-os directory:
+
+```
+$ make usb
+```
+
+This produces ics-os-usb.img. The helper uses scripts/create-usb-image.sh and requires root to set up a loop device and install GRUB.
+
+### Write to a thumb drive (Linux)
+
+**Warning:** This will erase the target drive.
+
+```
+$ sudo dd if=ics-os-usb.img of=/dev/sdX bs=4M status=progress conv=fsync
+```
+
+Replace /dev/sdX with your USB device (not a partition like /dev/sdX1).
+
+### Boot in QEMU
+
+```
+$ make boot-usb
+```
+
+### Boot on real hardware
+
+Enable legacy BIOS/CSM boot and select the USB device from the BIOS boot menu.
+
+### Notes
+
+- The USB image is FAT32 and uses GRUB in BIOS mode.
+- USB Mass Storage hot-plug is supported; inserted drives appear as usbX devices and can be mounted via `mount fat usbX /usbX`.
+
+## Zork (Z-Machine) Port
+
+We can run Zork by porting a GPL-compatible Z-Machine interpreter (e.g., Frotz) and using the ICS-OS SDK stdlib.
+
+1) Place interpreter sources in contrib/zork/interpreter.
+2) Build and install:
+
+```
+$ make -C ics-os/contrib/zork
+$ make -C ics-os/contrib/zork install
+```
+
+3) Copy your legally obtained Zork story file (e.g., ZORK1.DAT) into the boot image and run:
+
+```
+zork.exe /ZORK1.DAT
+```
+
+See [ics-os/contrib/zork/README.md](ics-os/contrib/zork/README.md) for details and licensing notes.
 ## Build Environment
 
 Ubuntu 16.04 64-bit is the last tested working build environment. Virtualbox can be used 
