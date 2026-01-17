@@ -36,5 +36,6 @@ extern PCB386 *sched_getcurrentprocess();
 extern PCB386 *sched_getnextprocess(PCB386 *before);
 extern void sched_scheduler_install();
 extern PCB386 *scheduler(PCB386 *lastprocess);
+extern void sched_setidle(PCB386 *idleproc);
 extern void ps_scheduler_install();
 #endif

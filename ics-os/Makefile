@@ -45,6 +45,9 @@ livecd: prep_image
 	grub-mkrescue -o ics-os-livecd.iso tmp/
 	rm -fr tmp/
 
+usb: prep_image
+	sudo sh scripts/create-usb-image.sh
+
 boot-floppy:
 	qemu-system-i386 -net nic,model=rtl8139 -fda ics-os-floppy.img -boot a -m 64M 
 
@@ -60,3 +63,6 @@ boot-debug:
 
 boot-livecd:
 	qemu-system-i386 -cdrom ics-os-livecd.iso -boot cd -m 64M
+
+boot-usb:
+	qemu-system-i386 -drive file=ics-os-usb.img,format=raw,if=ide -boot c -m 64M

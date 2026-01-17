@@ -647,6 +647,46 @@ int vfs_mount_device(const char *fsname,const char *devname,const char *location
     //return -1;
 };
 
+//Mounts a device directly to the VFS root
+int vfs_mount_root_device(const char *fsname,const char *devname)
+{
+    devmgr_fs_desc *myfs;
+    devmgr_block_desc *myblock;
+    int fsid, devid;
+    int retval = -1;
+
+    if (fsname == 0 || devname == 0)
+        return -1;
+
+    fsid = devmgr_finddevice(fsname);
+    if (fsid == -1)
+        return -1;
+
+    devid = devmgr_finddevice(devname);
+    if (devid == -1)
+        return -1;
+
+    myfs = (devmgr_fs_desc*) devmgr_getdevice(fsid);
+    myblock = (devmgr_block_desc*) devmgr_getdevice(devid);
+
+    if (myfs->hdr.type != DEVMGR_FS) return -1;
+    if (myblock->hdr.type != DEVMGR_BLOCK) return -1;
+
+    if (devmgr_getlock(devid)) return -1;
+
+    devmgr_setlock(devid,1);
+    vfs_root->attb |= FILE_MOUNT;
+
+    retval = bridges_link(myfs,&myfs->mountroot,vfs_root,devid,0,0,0,0);
+    if (retval == -1)
+    {
+        devmgr_setlock(devid,0);
+        vfs_root->attb &= ~FILE_MOUNT;
+    }
+
+    return retval;
+}
+
 //opens a file, supports file locking if opened for writing,append
 file_PCB *openfilex(char *filename,int mode)
 {

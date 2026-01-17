@@ -694,7 +694,7 @@ int console_execute(const char *str){
       //createthread((void*)runner,stk,10240);
    }else
    if (strcmp(u,"help") == 0){         //-- Displays this help screen.
-      console_execute("type /icsos/icsos.hlp");
+      console_execute("type /icsos.hlp");
    }else
    if (strcmp(u,"umount") == 0){       //-- Unmounts a mounted device. Args: <mount point>
       char *u =strtok(0," ");
@@ -884,7 +884,7 @@ int console_execute(const char *str){
                strcpy(src,u);
                sprintf(cmdline,"%s/tcc.exe -o%s %s -B%s %s/tccsdk.c %s/crt1.c",
                         path,exe,src,sdk_home,sdk_home,sdk_home);
-               user_execp("/icsos/apps/tcc.exe",0,cmdline);
+               user_execp("/apps/tcc.exe",0,cmdline);
             }else{
                printf("Usage: cc <name.exe> <name.c>\n");
             }
@@ -916,7 +916,7 @@ int console_execute(const char *str){
          char path[256]="", tmp[256];
          env_getenv("PATH",path);     
          if (strcmp(path,"")==0){
-            strcpy(path,"/icsos/apps");
+            strcpy(path,"/apps");
             sprintf(tmp,"%s/%s",path,u);
             if (!user_execp(tmp, 0, str)){
                printf("Command or executable not found.\n");
@@ -962,7 +962,7 @@ void console_main(){
    strcpy(last,"");
     
    if (console_first == 0) 
-      script_load("/icsos/autoexec.bat");
+      script_load("/autoexec.bat");
     
    console_first++;  
    do{

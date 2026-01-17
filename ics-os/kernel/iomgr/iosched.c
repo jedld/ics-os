@@ -7,6 +7,7 @@
 #include "../devmgr/dex32_devmgr.h"
 #include "iosched.h"
 #include "../stdlib/time.h"
+#include "../process/process.h"
 
 //The registers that the io scheduler uses
 int IOmgr_pause=0;
@@ -86,11 +87,7 @@ DWORD iomgr_diskmgr()
       
       if (ptr!=0)
       {
-         sync_entercrit(&IOrequest_busy);   
-         /*Turn of task switching to improve performance*/
-         disable_taskswitching();
-         
-         do {
+        do {
       //read or write data to the disk
       //   sigwait=current_process->processid;
       if (ptr->type==IO_READ)
@@ -114,7 +111,8 @@ DWORD iomgr_diskmgr()
                            ptr->num_of_blocks, ptr->lowblock,itoa(ptr->buf,temp,16));
                  #endif
 
-                 if (myblock->read_block(ptr->lowblock,ptr->buf,ptr->num_of_blocks))
+                     disable_taskswitching();
+                     if (myblock->read_block(ptr->lowblock,ptr->buf,ptr->num_of_blocks))
                  {
                   lastjob=ptr->lowblock;
                   ptr->status=IO_COMPLETE;
@@ -126,6 +124,7 @@ DWORD iomgr_diskmgr()
                    #endif
                    ptr->status=IO_ERROR;
                  };
+                 enable_taskswitching();
 
                 #ifdef DEBUG_READ          
           	    printf("dex32_diskmgr: read block Done..\n");
@@ -157,6 +156,7 @@ DWORD iomgr_diskmgr()
                          ptr->status=IO_ERROR;
                     }
                             else         
+                    disable_taskswitching();
                     if (myblock->write_block(ptr->lowblock,ptr->buf,ptr->num_of_blocks))
                     {
                          lastjob=ptr->lowblock;
@@ -164,6 +164,7 @@ DWORD iomgr_diskmgr()
                     } 
                             else
                           ptr->status=IO_ERROR;
+                    enable_taskswitching();
                     #ifdef DEBUG_IOREADWRITE
                     printf("dex32_diskmgr: write block Done..\n");
                     #endif
@@ -172,10 +173,7 @@ DWORD iomgr_diskmgr()
 
            }
            
-          while ( ptr!=0);    
-
-          enable_taskswitching(); /*Turn on task switiching*/
-          sync_leavecrit(&IOrequest_busy);
+                while ( ptr!=0);    
       };
       
     } while (1);
@@ -246,11 +244,16 @@ int dex32_IOcomplete(DWORD handle)
   
   ptr=(IOrequest*)handle;
 
-  if (ptr->status==IO_COMPLETE) retval=1;
-     else
-  if (ptr->status==IO_ERROR) retval=-1;
-     else
-  if (ptr->status==IO_PENDING) retval=0;
+    if (ptr->status==IO_COMPLETE) retval=1;
+      else
+    if (ptr->status==IO_ERROR) retval=-1;
+      else
+    if (ptr->status==IO_PENDING) {
+      retval=0;
+      sync_leavecrit(&IOrequest_busy);
+      taskswitch();
+      return retval;
+    }
 //     else //ptr->status was given an unknown value, this is impossible
           //unless a process overwrites the IOrequest data structure
 //  printf("iomgr() data structure protection error\n");
@@ -259,6 +262,16 @@ int dex32_IOcomplete(DWORD handle)
   return retval;
 
   ;};
+
+  int dex32_waitIO(DWORD handle)
+    {
+    int res;
+    if (!handle) return -1;
+    do {
+      res = dex32_IOcomplete(handle);
+    } while (res == 0);
+    return res;
+    ;};
 
 void dex32_closeIO(DWORD handle)
   {

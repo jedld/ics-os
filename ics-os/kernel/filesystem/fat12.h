@@ -229,6 +229,7 @@ int fat_mountdirectory(vfs_node *directory, int id);
 int fat_mount_root(vfs_node *mountpoint,int id);
 char *unicodetoascii(WORD *unicodestr,char *targ,int length);
 int fat_mount(vfs_node *mountpoint,fatdirentry *buf2,BPB *bpb,int id);
+int fat_identify_device(int id);
 DWORD get_sector_fromcluster(DWORD cluster,BPB *bpbblock,int func,BYTE *fat,int id);
 void writecluster(int cluster,int value,BYTE *fat,int);
 int obtain_next_cluster(int cluster,void *fat,int fat_type,BPB *bpbblock,int id);

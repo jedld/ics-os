@@ -52,6 +52,7 @@ DWORD iomgr_diskmgr();
 IOrequest *IOmgr_obtainjob(int deviceid,
     DWORD lblockhigh,DWORD lblocklow /*for optimization*/);
 int   dex32_IOcomplete(DWORD handle);
+int   dex32_waitIO(DWORD handle);
 void  dex32_closeIO(DWORD handle);
 DWORD dex32_requestIO(int deviceid,int type,DWORD block,DWORD numblocks, void *buf);
 

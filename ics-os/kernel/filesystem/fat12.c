@@ -209,6 +209,25 @@ void readBPB(BPB *bpbblock,int id)
    dex32_closeIO(handle);
 };
 
+int fat_identify_device(int id)
+{
+   BPB *bpb = (BPB*)malloc(512);
+   int result = 0;
+   if (bpb == 0) return 0;
+
+   readBPB(bpb,id);
+
+   if (bpb->bytes_per_sector == 512 && bpb->sectors_per_cluster != 0 && bpb->num_fats != 0)
+   {
+      // basic sanity checks for FAT12/16/32
+      if (bpb->sectors_per_fat != 0 || ((BPB32*)bpb)->fatsz32 != 0)
+         result = 1;
+   }
+
+   free(bpb);
+   return result;
+}
+
 void interpretBPB(BPB *bpbblock)
 {
    printf("bytes per sector:%d\n sectors per cluster:%d\n bootsectors:%d\n",

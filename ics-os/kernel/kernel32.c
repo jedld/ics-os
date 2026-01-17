@@ -102,6 +102,7 @@ extern void textcolor(unsigned char c);
 #include "hardware/ATA/ataio.h"
 #include "hardware/exceptions.h"
 #include "hardware/chips/speaker.h"
+#include "hardware/usb/usb.h"
 #include "dexapi/dex32API.h"
 #include "filesystem/fat12.h"
 #include "filesystem/iso9660.h"
@@ -178,6 +179,9 @@ void dex_init();
 #include "process/process.c"
 #include "dexapi/dex32API.c"
 #include "hardware/ATA/ide.c"
+#include "hardware/usb/ehci.c"
+#include "hardware/usb/usb_core.c"
+#include "hardware/usb/usb_msc.c"
 #include "vfs/vfs_aux.c"
 #include "memory/kheap.c"
 #include "memory/dexmem.c"
@@ -192,6 +196,7 @@ fg_processinfo *fg_kernel = 0;
 
 //holds the name of the device that booted the kernel
 char boot_device_name[255]="";
+const char *build_id = "devel";
 
 /*the start of the main kernel-- The task here is to setup the memory
   so that we could use it, we also enable some devices like the keyboard 
@@ -449,6 +454,13 @@ void dex_init(){
    ide_init();
    printf("[OK]\n");   
 
+   /*Initialize USB 2.0 (EHCI) and Mass Storage*/
+   printf("Initializing USB 2.0...\n");
+   usb_init();
+   usb_msc_init();
+   printf("[OK]\n");
+   createkthread((void*)usb_poll_thread,"usb_poll",20000);
+
    /*Install the VGA driver*/
    printf("Loading VGA driver...");
    vga_init();
@@ -501,14 +513,67 @@ void dex_init(){
    printf("[OK]\n");   
 
    printf("Mounting boot device %s...", boot_device_name);
-   if (strcmp(boot_device_name,"fd0") == 0){
-      //mount the boot device
-      vfs_mount_device("fat",boot_device_name,"icsos");
-   }else{
-      //for livecd
-      vfs_mount_device("cdfs","cds0","icsos");
+   int mounted = 0;
+   if (strcmp(boot_device_name,"fd0") == 0)
+   {
+      int devid = devmgr_finddevice(boot_device_name);
+      if (devid != -1 && fat_identify_device(devid))
+         mounted = (vfs_mount_root_device("fat",boot_device_name) != -1);
    }
-   printf("[OK]\n");   
+   else
+   {
+      int devid = devmgr_finddevice(boot_device_name);
+      if (devid != -1 && fat_identify_device(devid))
+         mounted = (vfs_mount_root_device("fat",boot_device_name) != -1);
+   }
+
+   //fallback to USB mass storage if boot device failed
+   if (!mounted)
+   {
+      int i;
+      int usbcount = usb_msc_get_block_count();
+      for (i=0;i<usbcount;i++)
+      {
+         const char *usbname = usb_msc_get_block_name(i);
+         int devid = devmgr_finddevice(usbname);
+         if (devid != -1 && fat_identify_device(devid))
+         {
+            if (vfs_mount_root_device("fat",usbname) != -1)
+            {
+               strcpy(boot_device_name, usbname);
+               mounted = 1;
+               break;
+            }
+         }
+      }
+   }
+
+   //fallback to livecd
+   if (!mounted)
+      mounted = (vfs_mount_root_device("cdfs","cds0") != -1);
+
+   if (mounted)
+      printf("[OK]\n");
+   else
+      printf("[FAIL]\n");
+
+   //auto-mount other USB devices under /usbX
+   if (usb_msc_get_block_count() > 0)
+   {
+      int i, index = 0;
+      for (i=0;i<usb_msc_get_block_count();i++)
+      {
+         const char *usbname = usb_msc_get_block_name(i);
+         if (strcmp(usbname, boot_device_name) == 0)
+            continue;
+         if (fat_identify_device(devmgr_finddevice(usbname)))
+         {
+            char mountpoint[32];
+            sprintf(mountpoint, "usb%d", index++);
+            vfs_mount_device("fat", usbname, mountpoint);
+         }
+      }
+   }
 
    //setup the initial executable loaders (So we could run .EXEs,.b32,coff and elfs)
    printf("Initializing first module loader(s) [EXE][COFF][ELF][DEX B32]...");

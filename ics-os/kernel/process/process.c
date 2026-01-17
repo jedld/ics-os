@@ -24,6 +24,7 @@
  */
 
 #include "process.h"
+void sched_setidle(PCB386 *idleproc);
 
 /*
 int lock_var = 0; // actual lock global variable used to provide synchronization
@@ -95,6 +96,7 @@ PCB386   pfPCB;                           //page fault PCB
 PCB386   pfPCB_copy;                      //copy of page fault PCB
 PCB386   keyPCB;                          //keyboard PCB
 PCB386   mousePCB;                        //mouse PCB                   
+PCB386   idlePCB;                         //idle PCB
 
 FPUregs ps_fpustate, ps_kernelfpustate;
 
@@ -1234,6 +1236,13 @@ void halt(){
       ;
 };
 
+void idle_thread(){
+   asm volatile("sti");
+   while (1){
+      asm volatile("hlt");
+   }
+};
+
 
 //Context switching, dispatcher
 //switched to another process using the TSS switching method
@@ -1717,13 +1726,23 @@ void process_init(){
 
    ps_scheduler_install();    //defined in kernel/process/scheduler.c
 
+   //initialize idle thread
+   processmgr_busy.busy = 0;
+   processmgr_busy.wait = 0;
+   {
+      DWORD idle_pid = createkthread((void*)idle_thread,"idle",4096);
+      PCB386 *idleproc = ps_findprocess(idle_pid);
+      if (idleproc != -1){
+         idleproc->status |= PS_ATTB_LOCKED | PS_ATTB_UNLOADABLE;
+         idleproc->priority = 0;
+         sched_setidle(idleproc);
+      }
+   }
+
 #ifdef DEBUG_STARTUP
    printf("process manager: done.\n");
 #endif
 
-   processmgr_busy.busy = 0;
-   processmgr_busy.wait = 0;
-    
    printf("Starting process manager...\n");
 };
 
