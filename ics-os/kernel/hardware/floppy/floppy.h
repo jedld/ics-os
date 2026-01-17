@@ -124,7 +124,7 @@ static long tbaddr;    /* physical address of track buffer located below 1M */
 
 int floppy_deviceid=0;
 int floppy_sigpriority = 0;
-char fdcbuf[513];
+char fdcbuf[18432];
 
 void sendbyte(int byte);
 void reset(void);
@@ -154,7 +154,7 @@ BOOL seek(int track);
 BOOL log_disk(DrvGeom *g);
 BOOL read_block(int block,BYTE *blockbuff,DWORD numblocks);
 BOOL write_block(int block,BYTE *blockbuff,DWORD numblocks);
-BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read);
+BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read,DWORD numblocks);
 BOOL fdc_rw_hts(int head,int track,int sector,BYTE *blockbuff,BOOL read);
 BOOL format_track(BYTE track,DrvGeom *g);
 int floppy_install();

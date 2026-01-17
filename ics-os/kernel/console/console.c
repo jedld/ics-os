@@ -26,6 +26,7 @@
 */
 
 #include "console.h"
+#include "../build.h"
 
 
 void runner(){
@@ -636,7 +637,8 @@ int console_execute(const char *str){
    }else  
    if (strcmp(u,"ver") == 0) {         //-- Shows version information.
       printf("%s\n",dex32_versionstring);
-      printf("%s\n",OS_VERSION);
+      printf("Version: %s\n",OS_VERSION);
+      printf("Build: %s\n",build_id);
    }else
    if (strcmp(u,"cpuid") == 0){        //-- Displays CPU information. 
       hardware_cpuinfo mycpu;

@@ -135,7 +135,7 @@ int flushcache()
                  #ifdef WRITE_DEBUG
                  printf("writing %d/%d..\n",cacheptr[index].sectorno,CACHESIZE);
                  #endif
-                 res = fdc_rw(cacheptr[index].sectorno,cacheptr[index].buf,FALSE);
+                 res = fdc_rw(cacheptr[index].sectorno,cacheptr[index].buf,FALSE,1);
               };
 
               if (res==0) res= -1; 
@@ -544,39 +544,53 @@ BOOL log_disk(DrvGeom *g)
 /* read block (blockbuff is 512 byte buffer) */
 BOOL read_block(int block,BYTE *blockbuff,DWORD numblocks)
 {
-    int retry=0;
-    BOOL res=0;
-    int i,ofs = 0;
-    char temp[513];
-   
-    
+    int current_block = block;
+    int blocks_left = numblocks;
+    int buffer_offset = 0;
+    int res = 0;
+    int retry = 0;
+    int k;
+
     if (getcache(blockbuff,block,numblocks)) 
     {return 1;};
 
-    for (i=0;i<numblocks;i++)
+    while (blocks_left > 0)
     {
-       res = 0;
-       
-       //the driver has a tendency to not work so we
-       //retry 3 times in case of failure
+        int head, track, sector;
+        int max_track_blocks;
+        int chunk_blocks;
 
-       while (retry<3&&res==0)
+        block2hts(current_block, &head, &track, &sector);
+        
+        max_track_blocks = geometry.spt - sector + 1;
+        chunk_blocks = (blocks_left < max_track_blocks) ? blocks_left : max_track_blocks;
+        
+        res = 0;
+        retry = 0;
+        while (retry < 3 && res == 0)
         {
-              if (fdc_rw(block + i ,temp,TRUE))
-              {
-               if (usecache)
-               storecache(temp,block + i,0);
-               res=1;
-               break;
-              };
-              retry++;
-        };
-
-      if (res==0) {strcpy(scr_debug,"  "); return 0;};
-      memcpy(blockbuff + ofs,temp,512);
-      ofs += 512;
-   
-    };
+             if (fdc_rw(current_block, blockbuff + buffer_offset, TRUE, chunk_blocks))
+             {
+                 if (usecache) {
+                     for(k=0; k<chunk_blocks; k++) {
+                         storecache(blockbuff + buffer_offset + k*512, current_block + k, 0);
+                     }
+                 }
+                 res = 1;
+                 break;
+             }
+             retry++;
+        }
+        
+        if (res == 0) {
+            strcpy(scr_debug,"  "); 
+            return 0;
+        }
+        
+        current_block += chunk_blocks;
+        blocks_left -= chunk_blocks;
+        buffer_offset += chunk_blocks * 512;
+    }
 
    return res;
 }
@@ -595,7 +609,7 @@ BOOL write_block(int block,BYTE *blockbuff, DWORD numblocks)
           {
                   res=0;
                   for (retry=0;retry<3&&res==0;retry++) 
-                  res=fdc_rw(block + i,blockbuff + ofs,FALSE);
+                  res=fdc_rw(block + i,blockbuff + ofs,FALSE,1);
           };
           if (res==0) return 0; 
      ofs += 512;
@@ -608,7 +622,7 @@ BOOL write_block(int block,BYTE *blockbuff, DWORD numblocks)
  * since reads and writes differ only by a few lines, this handles both.  This
  * function is called by read_block() and write_block()
  */
-BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read)
+BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read,DWORD numblocks)
 {
    int head,track,sector,tries,i;
    char temp[255];
@@ -621,7 +635,7 @@ BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read)
 
    if (!read && blockbuff) {
       /* copy data from data buffer into track buffer */
-      memcpy(fdcbuf,blockbuff,512);
+      memcpy(fdcbuf,blockbuff,512*numblocks);
      // movedata(_my_ds(),(long)blockbuff,_dos_ds,tbaddr,512);
    };
 
@@ -653,10 +667,10 @@ BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read)
 
       /* send command */
       if (read) {
-	 dma_xfer(2,(long)fdcbuf,512,FALSE);
+	 dma_xfer(2,(long)fdcbuf,512*numblocks,FALSE);
 	 sendbyte(FLOP_CMDREAD);
       } else {
-	 dma_xfer(2,(long)fdcbuf,512,TRUE);
+	 dma_xfer(2,(long)fdcbuf,512*numblocks,TRUE);
 	 sendbyte(FLOP_CMDWRITE);
       }
 
@@ -691,7 +705,7 @@ BOOL fdc_rw(int block,BYTE *blockbuff,BOOL read)
 
    if (read && blockbuff) {
       /* copy data from track buffer into data buffer */
-      memcpy(blockbuff,fdcbuf,512);
+      memcpy(blockbuff,fdcbuf,512*numblocks);
      
    }
      

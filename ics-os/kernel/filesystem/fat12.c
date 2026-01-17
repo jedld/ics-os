@@ -35,6 +35,8 @@
 //#define DEBUG_FAT12
 
 int fat_deviceid;
+BYTE *cached_fat = 0;
+int cached_fat_valid = 0;
 
 int obtain_next_cluster(int cluster,void *fat,int fat_type,BPB *bpbblock,int id)
 {
@@ -242,7 +244,13 @@ void loadfat(BPB *bpbblock,void *fat,int id)
       {
          DWORD i;
          DWORD start_of_fat = bpbblock->num_boot_sectors;
+         DWORD fat_size_bytes = fat_sectors_per_fat(bpbblock)*512;
          
+         if (cached_fat_valid && cached_fat != 0) {
+            memcpy(fat, cached_fat, fat_size_bytes);
+            return;
+         }
+
          #ifdef DEBUG_FAT12
          printf("loading fat size %d..",fat_sectors_per_fat(bpbblock));
          #endif
@@ -251,6 +259,12 @@ void loadfat(BPB *bpbblock,void *fat,int id)
          while (!dex32_IOcomplete(handle));
          dex32_closeIO(handle);     
          
+         if (cached_fat == 0) {
+             cached_fat = (BYTE*)malloc(fat_size_bytes);
+         }
+         memcpy(cached_fat, fat, fat_size_bytes);
+         cached_fat_valid = 1;
+
          #ifdef DEBUG_FAT12
          printf("done.\n");
          #endif
